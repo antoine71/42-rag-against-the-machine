@@ -1,0 +1,35 @@
+[project]
+name = "rag-against-the-machine"
+version = "0.1.0"
+description = "Retrieval Augmented Generation project"
+readme = "README.md"
+requires-python = ">=3.14"
+dependencies = []
+
+[tool.uv]
+package = true
+
+[project.scripts]
+rag = "rag.main:main"
+
+[tool.mypy]
+strict = true
+
+[tool.ruff]
+line-length = 79
+
+[tool.ruff.lint]
+# see all options: https://docs.astral.sh/ruff/rules/
+select = [
+    # isort
+    "I",
+    # pyflakes
+    "F",
+    # error
+    "E",
+    # docstrings
+    #"D101", "D102", "D103"
+]
+
+[tool.ruff.lint.pycodestyle]
+max-doc-length = 79
