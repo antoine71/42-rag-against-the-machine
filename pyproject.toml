@@ -4,7 +4,14 @@ version = "0.1.0"
 description = "Retrieval Augmented Generation project"
 readme = "README.md"
 requires-python = ">=3.14"
-dependencies = []
+dependencies = [
+    "bm25s[core]>=0.3.8",
+    "chromadb>=1.5.9",
+    "fire>=0.7.1",
+    "langchain>=1.2.17",
+    "pydantic>=2.13.4",
+    "tqdm>=4.67.3",
+]
 
 [tool.uv]
 package = true
@@ -33,3 +40,11 @@ select = [
 
 [tool.ruff.lint.pycodestyle]
 max-doc-length = 79
+
+[dependency-groups]
+dev = [
+    "flake8>=7.3.0",
+    "mypy>=1.20.2",
+    "pytest>=9.0.3",
+    "ruff>=0.15.12",
+]
