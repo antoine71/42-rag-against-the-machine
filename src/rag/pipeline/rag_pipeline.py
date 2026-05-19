@@ -1,3 +1,6 @@
+import logging
+from pathlib import Path
+
 from rag.indexing.bm25_repository_indexing_processor import (
     BM25RepositoryIndexingProcessor,
 )
@@ -5,10 +8,13 @@ from rag.indexing.files_repository_scanner import FilesRepositoryScanner
 from rag.indexing.langchain_chunking_processor import (
     LangChainChunkingProcessor,
 )
+from rag.llm.llm_chat_processor import LLMChatProcessor
 from rag.llm.llm_manager import LLMManager
 from rag.models.question import UnansweredQuestion
 from rag.retrieving.bm25_retrieving_processor import BM25RetrievingProcessor
 from rag.utils.files_manager import FilesManager
+
+logger = logging.getLogger(__name__)
 
 
 class RAGPipeline:
@@ -24,8 +30,8 @@ class RAGPipeline:
 
     def index(
         self,
-        max_chunk_size: int = 1000,
-        repository: str = "fly_in",
+        max_chunk_size: int = 2000,
+        repository: str = "data/raw/vllm-0.10.1",
         save_directory: str = "data/processed/",
     ) -> None:
         """Index the dataset.
@@ -42,7 +48,9 @@ class RAGPipeline:
             chunks, self._model.tokenize_batch, self._model.get_vocab()
         )
         indexing_processor.index_corpus(save_directory)
-        print(f"Ingestion complete! Indices saved under {save_directory}")
+        logger.info(
+            f"Ingestion complete! Indices saved under {save_directory}"
+        )
 
     def answer(self, query: str, k: int) -> None:
         """Answer questions using the RAG model.
@@ -54,17 +62,25 @@ class RAGPipeline:
             self._model.tokenize_batch, self._model.get_vocab()
         )
         results = retriever.retrieve([question], k)
-        self._files_manager.save_results(
-            results, "data/output/single_query.json"
-        )
 
-    def answer_dataset(self) -> None:
+    def answer_dataset(
+        self,
+        student_search_result_path="data/output/search_results/dataset_docs_public.json",
+        save_directory="data/output/search_result_and_answer",
+    ) -> None:
         """Generate answers for a dataset.
 
         Prints a message indicating that answering a dataset is in progress.
         """
-
-        print("answer dataset")
+        search_results = self._files_manager.load_search_results(
+            student_search_result_path
+        )
+        chat_processor = LLMChatProcessor(self._files_manager)
+        for result in search_results.search_results:
+            output = chat_processor.answer(
+                result.question_str, result.retrieved_sources
+            )
+            print(output)
 
     def search(self) -> None:
         """Search the dataset.
@@ -75,12 +91,24 @@ class RAGPipeline:
         print("search")
 
     def search_dataset(
-        self, dataset_path: str, k: int, save_directory: str
+        self,
+        dataset_path: str = "datasets_public/public/UnansweredQuestions/dataset_code_public.json",
+        k: int = 10,
+        save_directory: str = "data/output/search_results",
     ) -> None:
         """Search a dataset for specific items.
 
         Prints a message indicating that searching a dataset is in progress.
         """
+        dataset = self._files_manager.load_dataset(dataset_path)
+        retriever = BM25RetrievingProcessor(
+            self._model.tokenize_batch, self._model.get_vocab()
+        )
+        results = retriever.retrieve(dataset, k)
+        save_file_name = Path(dataset_path).name
+        save_file_path_obj = Path(save_directory) / save_file_name
+        self._files_manager.save_results(results, str(save_file_path_obj))
+        logger.info(f"Saved student_search_results to '{save_file_path_obj}'")
 
     def evaluate(self) -> None:
         """Evaluate the performance of the RAG pipeline.

@@ -1,0 +1,2 @@
+class RAGException(Exception):
+    pass

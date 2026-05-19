@@ -1,11 +1,10 @@
 from collections.abc import Callable
 
 import bm25s
-from bm25s.tokenization import Tokenized
 
 from rag.models.minimal_source import MinimalSource
 from rag.models.question import UnansweredQuestion
-from rag.models.search_result import MinimalSearchResults
+from rag.models.search_result import MinimalSearchResults, StudentSearchResults
 
 
 class BM25RetrievingProcessor:
@@ -20,13 +19,15 @@ class BM25RetrievingProcessor:
 
     def retrieve(
         self, queries: list[UnansweredQuestion], k: int
-    ) -> list[MinimalSearchResults]:
-        query_tokens = self._tokenize_batch(
-            [query.question for query in queries]
-        )
-        results, _ = self._retriever.retrieve(
-            Tokenized(query_tokens, self._vocab), k=k
-        )
+    ) -> StudentSearchResults:
+        # query_tokens = self._tokenize_batch(
+        #     [query.question for query in queries]
+        # )
+        query_tokens = bm25s.tokenize([query.question for query in queries])
+        # results, _ = self._retriever.retrieve(
+        #     Tokenized(query_tokens, self._vocab), k=k
+        # )
+        results, _ = self._retriever.retrieve(query_tokens)
         search_result = []
         for i, result in enumerate(results):
             search_result.append(
@@ -43,4 +44,4 @@ class BM25RetrievingProcessor:
                     ],
                 )
             )
-        return search_result
+        return StudentSearchResults(search_results=search_result, k=k)

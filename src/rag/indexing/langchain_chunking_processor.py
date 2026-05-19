@@ -26,21 +26,17 @@ class LangChainChunkingProcessor:
     ) -> None:
         self._files = files
         self._tokenize = tokenize
-        self._markdown_text_splitter = (
-            MarkdownTextSplitter.from_huggingface_tokenizer(
-                tokenizer,
-                chunk_size=chunk_size,
-                chunk_overlap=max(10, chunk_size // 20),
-                add_start_index=True,
-            )
+        self._markdown_text_splitter = MarkdownTextSplitter(
+            chunk_size=chunk_size,
+            chunk_overlap=max(10, chunk_size // 20),
+            add_start_index=True,
+            length_function=len,
         )
-        self._python_text_splitter = (
-            PythonCodeTextSplitter.from_huggingface_tokenizer(
-                tokenizer,
-                chunk_size=chunk_size,
-                chunk_overlap=max(10, chunk_size // 20),
-                add_start_index=True,
-            )
+        self._python_text_splitter = PythonCodeTextSplitter(
+            length_function=len,
+            chunk_size=chunk_size,
+            chunk_overlap=max(10, chunk_size // 20),
+            add_start_index=True,
         )
 
     def _get_document_type(self, file: Path) -> str:
@@ -87,5 +83,4 @@ class LangChainChunkingProcessor:
         logger.info(
             f"Split {len(self._files)} files into {len(chunks)} chunks."
         )
-        print(chunks[0].metadata)
         return [Chunk.from_document(chunk) for chunk in chunks]

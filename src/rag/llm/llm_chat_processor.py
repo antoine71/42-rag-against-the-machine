@@ -1,0 +1,85 @@
+from typing import cast
+
+from transformers import AutoModelForCausalLM, AutoTokenizer, TokenizersBackend
+
+from rag.models.minimal_source import MinimalSource
+from rag.utils.files_manager import FilesManager
+
+
+class LLMChatProcessor:
+    def __init__(self, files_manager: FilesManager) -> None:
+        self._files_manager = files_manager
+
+    def answer(self, query: str, sources: list[MinimalSource]) -> str:
+        tokenizer = cast(
+            TokenizersBackend,
+            AutoTokenizer.from_pretrained(
+                "Qwen/Qwen3-0.6B",
+            ),
+        )
+        model = AutoModelForCausalLM.from_pretrained(
+            "Qwen/Qwen3-0.6B",
+            torch_dtype="auto",  # Aligne la précision sur votre matériel
+            device_map="auto",  # Met le modèle sur GPU (ou CPU) automatiquement
+        )
+        messages = [
+            self._system_prompt,
+            self._generate_user_prompt(query, sources),
+        ]
+        prompt = tokenizer.apply_chat_template(
+            messages,
+            tokenize=True,
+            add_generation_prompt=True,
+            enable_thinking=False,
+            return_tensors="pt",
+        )
+        generated_ids = model.generate(**prompt, max_new_tokens=512)
+        context_length = prompt["input_ids"].shape[1]
+        output = tokenizer.decode(
+            generated_ids[0][context_length:], skip_special_tokens=True
+        )
+        return output
+
+    def _prepare_context(self, sources: list[MinimalSource]) -> str:
+        chunks = [
+            (source.file_path, self._files_manager.load_chunk(source))
+            for source in sources
+        ]
+        formatted_sources = []
+        for i, (file_path, content) in enumerate(chunks, start=1):
+            if i > 5:
+                break
+            formatted_sources.append(
+                f"[Source {i}] File: {file_path}\nContent: {content}\n"
+            )
+        return "\n".join(formatted_sources)
+
+    def _generate_user_prompt(
+        self, query: str, sources: list[MinimalSource]
+    ) -> dict[str, str]:
+        return {
+            "role": "user",
+            "content": (
+                "Retrieved Context:\n"
+                "---\n"
+                f"{self._prepare_context(sources)}"
+                "---\n\n"
+                f"Question: {query}\n\n"
+                "Answer based only on the retrieved context above."
+            ),
+        }
+
+    @property
+    def _system_prompt(self) -> dict[str, str]:
+        return {
+            "role": "system",
+            "content": (
+                "You are a precise and helpful assistant. Answer the user's "
+                "question using ONLY the "
+                "retrieved context provided below. Follow these rules strictly:\n"
+                '- If the answer is not in the context, say: "I don\'t have enough information to answer that."\n'
+                "- Do not use outside knowledge or make up information.\n"
+                "- Keep answers concise and grounded in the provided text.\n"
+                "- When possible, cite which document/source supports your answer."
+            ),
+        }

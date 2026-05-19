@@ -5,9 +5,7 @@ from transformers import AutoModelForCausalLM, AutoTokenizer, TokenizersBackend
 
 class LLMManager:
     def __init__(self, model: str) -> None:
-        self.model = AutoModelForCausalLM.from_pretrained(
-            model, cache_dir="/tmp/hf"
-        )
+        self.model = AutoModelForCausalLM.from_pretrained(model)
         self.tokenizer = cast(
             TokenizersBackend, AutoTokenizer.from_pretrained(model)
         )

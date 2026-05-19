@@ -1,10 +1,12 @@
 import logging
 from pathlib import Path
 
+from rag.exceptions import RAGException
+
 logger = logging.getLogger(__name__)
 
 
-class FilesRepositoryScannerError(Exception):
+class FilesRepositoryScannerError(RAGException):
     pass
 
 
@@ -32,7 +34,7 @@ class FilesRepositoryScanner:
                 if self._is_file_valid(file_path):
                     data_files.append(root / file)
         logger.info(
-            f"Indexed {len(data_files)} from '{self._repository_path}'."
+            f"Found {len(data_files)} py and md files from '{self._repository_path}'."
         )
         return data_files
 
