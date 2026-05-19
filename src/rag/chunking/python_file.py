@@ -1,15 +1,10 @@
 import ast
-from collections.abc import Callable
 from typing import Any
 
+from rag.chunking.base_parser import BaseParser
 
-class PythonFileParser:
-    def __init__(self, encode: Callable[[str], list[int]]) -> None:
-        self._encode = encode
 
-    def _count_tokens(self, text: str) -> int:
-        return len(self._encode(text))
-
+class PythonFileParser(BaseParser):
     def _get_position(
         self, lines: list[str], start_line: int, end_line: int
     ) -> tuple[int, int]:

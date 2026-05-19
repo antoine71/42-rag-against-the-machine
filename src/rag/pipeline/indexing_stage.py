@@ -3,4 +3,4 @@ class IndexingStage:
         pass
 
     def run(self):
-        print("OK")
+        print("Indexing OK")

@@ -1,15 +1,12 @@
 import uuid
-from typing import Annotated
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
 from rag.models.minimal_source import MinimalSource
 
 
 class UnansweredQuestion(BaseModel):
-    question_id: Annotated[
-        str, Field(default_factory=lambda: str(uuid.uuid4()))
-    ]
+    question_id: str = str(uuid.uuid4())
     question: str
 
 
