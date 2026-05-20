@@ -1,6 +1,7 @@
 import logging
 from pathlib import Path
 
+from rag.evaluating.evaluation_processor import EvaluationProcessor
 from rag.indexing.bm25_repository_indexing_processor import (
     BM25RepositoryIndexingProcessor,
 )
@@ -11,6 +12,10 @@ from rag.indexing.langchain_chunking_processor import (
 from rag.llm.llm_chat_processor import LLMChatProcessor
 from rag.llm.llm_manager import LLMManager
 from rag.models.question import UnansweredQuestion
+from rag.models.search_result import (
+    MinimalAnswer,
+    StudentSearchResultsAndAnswer,
+)
 from rag.retrieving.bm25_retrieving_processor import BM25RetrievingProcessor
 from rag.utils.files_manager import FilesManager
 
@@ -76,11 +81,22 @@ class RAGPipeline:
             student_search_result_path
         )
         chat_processor = LLMChatProcessor(self._files_manager)
+        answers = StudentSearchResultsAndAnswer(
+            search_results=[], k=search_results.k
+        )
         for result in search_results.search_results:
-            output = chat_processor.answer(
-                result.question_str, result.retrieved_sources
+            output = chat_processor.answer_single_query(
+                result.question, result.retrieved_sources
             )
-            print(output)
+            answers.search_results.append(
+                MinimalAnswer(answer=output, **result.model_dump())
+            )
+        save_file_name = Path(student_search_result_path).name
+        save_file_path_obj = Path(save_directory) / save_file_name
+        self._files_manager.save_results(answers, str(save_file_path_obj))
+        logger.info(
+            f"Saved student_search_results_and_answers to '{save_file_path_obj}'"
+        )
 
     def search(self) -> None:
         """Search the dataset.
@@ -100,18 +116,27 @@ class RAGPipeline:
 
         Prints a message indicating that searching a dataset is in progress.
         """
-        dataset = self._files_manager.load_dataset(dataset_path)
+        dataset = self._files_manager.load_dataset(
+            dataset_path, "unanswered_questions"
+        )
         retriever = BM25RetrievingProcessor(
             self._model.tokenize_batch, self._model.get_vocab()
         )
-        results = retriever.retrieve(dataset, k)
+        results = retriever.retrieve(dataset.rag_questions, k)
         save_file_name = Path(dataset_path).name
         save_file_path_obj = Path(save_directory) / save_file_name
         self._files_manager.save_results(results, str(save_file_path_obj))
         logger.info(f"Saved student_search_results to '{save_file_path_obj}'")
 
-    def evaluate(self) -> None:
+    def evaluate(
+        self,
+        student_answer_path: str = "data/output/search_results/dataset_code_public.json",
+        dataset_path: str = "datasets_public/public/AnsweredQuestions/dataset_code_public.json",
+    ) -> None:
         """Evaluate the performance of the RAG pipeline.
 
         Prints a message indicating that evaluation is in progress.
         """
+        evaluator = EvaluationProcessor(self._files_manager)
+        metrics = evaluator.evaluate(student_answer_path, dataset_path)
+        print(metrics)

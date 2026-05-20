@@ -1,6 +1,11 @@
 from typing import cast
 
-from transformers import AutoModelForCausalLM, AutoTokenizer, TokenizersBackend
+from transformers import (
+    AutoModelForCausalLM,
+    AutoTokenizer,
+    BatchEncoding,
+    TokenizersBackend,
+)
 
 from rag.models.minimal_source import MinimalSource
 from rag.utils.files_manager import FilesManager
@@ -10,7 +15,9 @@ class LLMChatProcessor:
     def __init__(self, files_manager: FilesManager) -> None:
         self._files_manager = files_manager
 
-    def answer(self, query: str, sources: list[MinimalSource]) -> str:
+    def answer_single_query(
+        self, query: str, sources: list[MinimalSource]
+    ) -> str:
         tokenizer = cast(
             TokenizersBackend,
             AutoTokenizer.from_pretrained(
@@ -19,20 +26,24 @@ class LLMChatProcessor:
         )
         model = AutoModelForCausalLM.from_pretrained(
             "Qwen/Qwen3-0.6B",
-            torch_dtype="auto",  # Aligne la précision sur votre matériel
-            device_map="auto",  # Met le modèle sur GPU (ou CPU) automatiquement
+            torch_dtype="auto",
+            device_map="auto",
         )
         messages = [
             self._system_prompt,
             self._generate_user_prompt(query, sources),
         ]
-        prompt = tokenizer.apply_chat_template(
-            messages,
-            tokenize=True,
-            add_generation_prompt=True,
-            enable_thinking=False,
-            return_tensors="pt",
+        prompt = cast(
+            BatchEncoding,
+            tokenizer.apply_chat_template(
+                messages,
+                tokenize=True,
+                add_generation_prompt=True,
+                enable_thinking=False,
+                return_tensors="pt",
+            ),
         )
+        prompt = prompt.to(model.device)
         generated_ids = model.generate(**prompt, max_new_tokens=512)
         context_length = prompt["input_ids"].shape[1]
         output = tokenizer.decode(
