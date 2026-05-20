@@ -1,6 +1,6 @@
 import itertools
 import logging
-from collections.abc import Callable, Generator
+from collections.abc import Generator
 from pathlib import Path
 
 from langchain_core.documents import Document
@@ -9,7 +9,6 @@ from langchain_text_splitters import (
     PythonCodeTextSplitter,
     TextSplitter,
 )
-from transformers import PreTrainedTokenizerBase
 
 from rag.models.chunk import Chunk
 
@@ -21,11 +20,8 @@ class LangChainChunkingProcessor:
         self,
         chunk_size: int,
         files: list[Path],
-        tokenize: Callable[[str], list[int]],
-        tokenizer: PreTrainedTokenizerBase,
     ) -> None:
         self._files = files
-        self._tokenize = tokenize
         self._markdown_text_splitter = MarkdownTextSplitter(
             chunk_size=chunk_size,
             chunk_overlap=max(10, chunk_size // 20),
@@ -57,9 +53,6 @@ class LangChainChunkingProcessor:
                     "type": self._get_document_type(file),
                 },
             )
-
-    def _len_chunk(self, chunk: str) -> int:
-        return len(self._tokenize(chunk))
 
     def _split_documents(
         self, doc_type: str, splitter: TextSplitter

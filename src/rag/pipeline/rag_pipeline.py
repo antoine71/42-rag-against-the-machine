@@ -10,7 +10,6 @@ from rag.indexing.langchain_chunking_processor import (
     LangChainChunkingProcessor,
 )
 from rag.llm.llm_chat_processor import LLMChatProcessor
-from rag.llm.llm_manager import LLMManager
 from rag.models.question import UnansweredQuestion
 from rag.models.search_result import (
     MinimalAnswer,
@@ -30,7 +29,6 @@ class RAGPipeline:
     """
 
     def __init__(self) -> None:
-        self._model = LLMManager("Qwen/Qwen3-0.6B")
         self._files_manager = FilesManager()
 
     def index(
@@ -45,13 +43,9 @@ class RAGPipeline:
         """
         repository_scanner = FilesRepositoryScanner(repository)
         files = repository_scanner.list_files()
-        chunking_processor = LangChainChunkingProcessor(
-            max_chunk_size, files, self._model.tokenize, self._model.tokenizer
-        )
+        chunking_processor = LangChainChunkingProcessor(max_chunk_size, files)
         chunks = chunking_processor.split()
-        indexing_processor = BM25RepositoryIndexingProcessor(
-            chunks, self._model.tokenize_batch, self._model.get_vocab()
-        )
+        indexing_processor = BM25RepositoryIndexingProcessor(chunks)
         indexing_processor.index_corpus(save_directory)
         logger.info(
             f"Ingestion complete! Indices saved under {save_directory}"
@@ -63,9 +57,7 @@ class RAGPipeline:
         Prints a message indicating that answering is in progress.
         """
         question = UnansweredQuestion(question=query)
-        retriever = BM25RetrievingProcessor(
-            self._model.tokenize_batch, self._model.get_vocab()
-        )
+        retriever = BM25RetrievingProcessor()
         results = retriever.retrieve([question], k)
 
     def answer_dataset(
@@ -119,9 +111,7 @@ class RAGPipeline:
         dataset = self._files_manager.load_dataset(
             dataset_path, "unanswered_questions"
         )
-        retriever = BM25RetrievingProcessor(
-            self._model.tokenize_batch, self._model.get_vocab()
-        )
+        retriever = BM25RetrievingProcessor()
         results = retriever.retrieve(dataset.rag_questions, k)
         save_file_name = Path(dataset_path).name
         save_file_path_obj = Path(save_directory) / save_file_name
