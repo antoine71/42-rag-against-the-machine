@@ -25,12 +25,6 @@ logger = logging.getLogger(__name__)
 
 
 class RAGPipeline:
-    """Main class for managing various RAG-related operations.
-
-    This class provides an interface to index data, search through datasets,
-    generate answers using a RAG model, and evaluate overall performance.
-    """
-
     def __init__(self) -> None:
         self._files_manager = FilesManager()
         self._tui = TUI()
