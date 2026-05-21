@@ -33,9 +33,6 @@ class FilesRepositoryScanner:
                 file_path = root / file
                 if self._is_file_valid(file_path):
                     data_files.append(root / file)
-        logger.info(
-            f"Found {len(data_files)} py and md files from '{self._repository_path}'."
-        )
         return data_files
 
     def _is_file_valid(self, file_path: Path) -> bool:

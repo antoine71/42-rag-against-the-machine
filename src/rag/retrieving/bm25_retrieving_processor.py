@@ -9,19 +9,17 @@ class BM25RetrievingProcessor:
     def __init__(
         self,
     ) -> None:
-        self._retriever = bm25s.BM25().load("data/processed", load_corpus=True)
+        self._retriever: bm25s.BM25 = bm25s.BM25().load(
+            "data/processed", load_corpus=True
+        )
 
     def retrieve(
         self, queries: list[UnansweredQuestion], k: int
     ) -> StudentSearchResults:
-        # query_tokens = self._tokenize_batch(
-        #     [query.question for query in queries]
-        # )
         query_tokens = bm25s.tokenize([query.question for query in queries])
-        # results, _ = self._retriever.retrieve(
-        #     Tokenized(query_tokens, self._vocab), k=k
-        # )
-        results, _ = self._retriever.retrieve(query_tokens)
+        results, _ = self._retriever.retrieve(
+            query_tokens, show_progress=True, leave_progress=True
+        )
         search_result = []
         for i, result in enumerate(results):
             search_result.append(

@@ -28,8 +28,8 @@ class FilesManager:
         try:
             file_path_obj.parent.mkdir(parents=True, exist_ok=True)
             file_path_obj.write_text(
-                json.dumps(
-                    results.model_dump(by_alias=True),
+                results.model_dump_json(
+                    by_alias=True,
                     indent=4,
                 )
             )

@@ -1,3 +1,4 @@
+import itertools
 from typing import cast
 
 from transformers import (
@@ -6,60 +7,86 @@ from transformers import (
     BatchEncoding,
     TokenizersBackend,
 )
+from transformers._typing import GenerativePreTrainedModel
 
+from rag.exceptions import RAGException
 from rag.models.minimal_source import MinimalSource
+from rag.models.search_result import MinimalSearchResults
 from rag.utils.files_manager import FilesManager
 
 
-class LLMChatProcessor:
-    def __init__(self, files_manager: FilesManager) -> None:
-        self._files_manager = files_manager
+class LLMChatProcessorError(RAGException):
+    pass
 
-    def answer_single_query(
-        self, query: str, sources: list[MinimalSource]
-    ) -> str:
-        tokenizer = cast(
-            TokenizersBackend,
-            AutoTokenizer.from_pretrained(
-                "Qwen/Qwen3-0.6B",
-            ),
-        )
-        model = AutoModelForCausalLM.from_pretrained(
-            "Qwen/Qwen3-0.6B",
-            torch_dtype="auto",
-            device_map="auto",
-        )
+
+class LLMChatProcessor:
+    def __init__(
+        self, files_manager: FilesManager, model_name: str, k: int
+    ) -> None:
+        self._files_manager = files_manager
+        self._k = k
+        try:
+            self._tokenizer = cast(
+                TokenizersBackend,
+                AutoTokenizer.from_pretrained(
+                    model_name,
+                    padding_side="left",
+                ),
+            )
+            self._model = cast(
+                GenerativePreTrainedModel,
+                AutoModelForCausalLM.from_pretrained(
+                    model_name,
+                    torch_dtype="auto",
+                    device_map="auto",
+                ),
+            )
+        except OSError as e:
+            raise LLMChatProcessorError(
+                f"Invalid model name: '{model_name}'"
+            ) from e
+
+    def answer_batch_query(
+        self, input: tuple[MinimalSearchResults, ...]
+    ) -> list[str]:
         messages = [
-            self._system_prompt,
-            self._generate_user_prompt(query, sources),
+            [
+                self._system_prompt,
+                self._generate_user_prompt(
+                    result.question, result.retrieved_sources
+                ),
+            ]
+            for result in input
         ]
-        prompt = cast(
+        prompt_tokens = cast(
             BatchEncoding,
-            tokenizer.apply_chat_template(
+            self._tokenizer.apply_chat_template(
                 messages,
                 tokenize=True,
+                padding=True,
                 add_generation_prompt=True,
                 enable_thinking=False,
                 return_tensors="pt",
             ),
         )
-        prompt = prompt.to(model.device)
-        generated_ids = model.generate(**prompt, max_new_tokens=512)
-        context_length = prompt["input_ids"].shape[1]
-        output = tokenizer.decode(
-            generated_ids[0][context_length:], skip_special_tokens=True
+        prompt_tokens = prompt_tokens.to(self._model.device)
+        generated_ids = self._model.generate(
+            **prompt_tokens, max_new_tokens=256
+        )
+        input_length = prompt_tokens["input_ids"].shape[1]
+        new_tokens = generated_ids[:, input_length:]
+        output = self._tokenizer.batch_decode(
+            new_tokens, skip_special_tokens=True
         )
         return output
 
     def _prepare_context(self, sources: list[MinimalSource]) -> str:
         chunks = [
             (source.file_path, self._files_manager.load_chunk(source))
-            for source in sources
+            for source in itertools.islice(sources, self._k)
         ]
         formatted_sources = []
         for i, (file_path, content) in enumerate(chunks, start=1):
-            if i > 5:
-                break
             formatted_sources.append(
                 f"[Source {i}] File: {file_path}\nContent: {content}\n"
             )

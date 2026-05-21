@@ -16,24 +16,28 @@ def run_app() -> None:
 
 def init_logger() -> None:
     logging.basicConfig(
-        # filename="rag.log",
+        filename="rag.log",
         format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
         level=logging.ERROR,
     )
-    logging.getLogger("bm25s").setLevel(logging.INFO)
-    logging.getLogger("rag").setLevel(logging.INFO)
+    logging.getLogger("bm25s").setLevel(logging.ERROR)
+
+
+def error_handler(e: Exception, error_type: str) -> None:
+    logger.error(f"{error_type} ({type(e).__name__}): {str(e)}")
+    logger.error(traceback.format_exc())
+    print(f"{error_type}: {e}", file=sys.stderr)
 
 
 def main() -> None:
     try:
         init_logger()
         run_app()
-    except RAGException as e:
-        logger.error(f"Processing Error: {str(e)}")
-        sys.exit(1)
     except KeyboardInterrupt:
         sys.exit(1)
+    except RAGException as e:
+        error_handler(e, "Processing error")
+        sys.exit(1)
     except Exception as e:
-        logger.error(f"unexpected error: {str(e)}")
-        logger.error(traceback.format_exc())
+        error_handler(e, "Unexpected error")
         sys.exit(1)

@@ -1,4 +1,6 @@
+import itertools
 import logging
+import uuid
 from pathlib import Path
 
 from rag.evaluating.evaluation_processor import EvaluationProcessor
@@ -16,6 +18,7 @@ from rag.models.search_result import (
     StudentSearchResultsAndAnswer,
 )
 from rag.retrieving.bm25_retrieving_processor import BM25RetrievingProcessor
+from rag.tui import TUI
 from rag.utils.files_manager import FilesManager
 
 logger = logging.getLogger(__name__)
@@ -30,6 +33,7 @@ class RAGPipeline:
 
     def __init__(self) -> None:
         self._files_manager = FilesManager()
+        self._tui = TUI()
 
     def index(
         self,
@@ -37,77 +41,39 @@ class RAGPipeline:
         repository: str = "data/raw/vllm-0.10.1",
         save_directory: str = "data/processed/",
     ) -> None:
-        """Index the dataset.
-
-        Prints a message indicating that indexing is in progress.
-        """
         repository_scanner = FilesRepositoryScanner(repository)
         files = repository_scanner.list_files()
+        self._tui.print(
+            f"Found {len(files)} py and md files from '{repository}'."
+        )
+
         chunking_processor = LangChainChunkingProcessor(max_chunk_size, files)
         chunks = chunking_processor.split()
+        self._tui.print(f"Split {len(files)} files into {len(chunks)} chunks.")
+
         indexing_processor = BM25RepositoryIndexingProcessor(chunks)
         indexing_processor.index_corpus(save_directory)
-        logger.info(
+        self._tui.print(
             f"Ingestion complete! Indices saved under {save_directory}"
         )
 
-    def answer(self, query: str, k: int) -> None:
-        """Answer questions using the RAG model.
-
-        Prints a message indicating that answering is in progress.
-        """
-        question = UnansweredQuestion(question=query)
+    def search(self, query: str, k=10) -> None:
         retriever = BM25RetrievingProcessor()
+        question = UnansweredQuestion(
+            question_id=str(uuid.uuid4()), question=query
+        )
         results = retriever.retrieve([question], k)
-
-    def answer_dataset(
-        self,
-        student_search_result_path="data/output/search_results/dataset_docs_public.json",
-        save_directory="data/output/search_result_and_answer",
-    ) -> None:
-        """Generate answers for a dataset.
-
-        Prints a message indicating that answering a dataset is in progress.
-        """
-        search_results = self._files_manager.load_search_results(
-            student_search_result_path
-        )
-        chat_processor = LLMChatProcessor(self._files_manager)
-        answers = StudentSearchResultsAndAnswer(
-            search_results=[], k=search_results.k
-        )
-        for result in search_results.search_results:
-            output = chat_processor.answer_single_query(
-                result.question, result.retrieved_sources
-            )
-            answers.search_results.append(
-                MinimalAnswer(answer=output, **result.model_dump())
-            )
-        save_file_name = Path(student_search_result_path).name
-        save_file_path_obj = Path(save_directory) / save_file_name
-        self._files_manager.save_results(answers, str(save_file_path_obj))
-        logger.info(
-            f"Saved student_search_results_and_answers to '{save_file_path_obj}'"
-        )
-
-    def search(self) -> None:
-        """Search the dataset.
-
-        Prints a message indicating that searching is in progress.
-        """
-
-        print("search")
+        self._tui.print(results.model_dump_json(indent=4))
 
     def search_dataset(
         self,
-        dataset_path: str = "datasets_public/public/UnansweredQuestions/dataset_code_public.json",
+        dataset_path: str = (
+            "datasets_public/public/UnansweredQuestions"
+            "/dataset_docs_public.json"
+        ),
         k: int = 10,
         save_directory: str = "data/output/search_results",
     ) -> None:
-        """Search a dataset for specific items.
-
-        Prints a message indicating that searching a dataset is in progress.
-        """
         dataset = self._files_manager.load_dataset(
             dataset_path, "unanswered_questions"
         )
@@ -116,12 +82,83 @@ class RAGPipeline:
         save_file_name = Path(dataset_path).name
         save_file_path_obj = Path(save_directory) / save_file_name
         self._files_manager.save_results(results, str(save_file_path_obj))
-        logger.info(f"Saved student_search_results to '{save_file_path_obj}'")
+        self._tui.print(
+            f"Saved student_search_results to '{save_file_path_obj}'"
+        )
+
+    def answer(self, query: str, k: int = 5, model="Qwen/Qwen3-0.6B") -> None:
+        """Answer questions using the RAG model.
+
+        Prints a message indicating that answering is in progress.
+        """
+        retriever = BM25RetrievingProcessor()
+        question = UnansweredQuestion(
+            question_id=str(uuid.uuid4()), question=query
+        )
+        results = retriever.retrieve([question], k)
+        chat_processor = LLMChatProcessor(self._files_manager, model, k)
+        with self._tui.progress("Processing queries", 1, "query") as progress:
+            outputs = chat_processor.answer_batch_query(
+                (results.search_results[0],)
+            )
+            answers = StudentSearchResultsAndAnswer(
+                search_results=[
+                    MinimalAnswer(
+                        answer=outputs[0],
+                        **results.search_results[0].model_dump(),
+                    )
+                ],
+                k=k,
+            )
+            progress.update(1)
+        self._tui.print(answers.model_dump_json(indent=4))
+
+    def answer_dataset(
+        self,
+        student_search_result_path=(
+            "data/output/search_results/dataset_docs_public.json"
+        ),
+        save_directory="data/output/search_result_and_answer",
+        k=5,
+        model="Qwen/Qwen3-0.6B",
+        batch_size=1,
+    ) -> None:
+        search_results = self._files_manager.load_search_results(
+            student_search_result_path
+        )
+        chat_processor = LLMChatProcessor(self._files_manager, model, k)
+        answers = StudentSearchResultsAndAnswer(
+            search_results=[], k=search_results.k
+        )
+        total = len(search_results.search_results)
+        with self._tui.progress(
+            "Processing queries", total, "query"
+        ) as progress:
+            for results in itertools.batched(
+                search_results.search_results, batch_size
+            ):
+                outputs = chat_processor.answer_batch_query(results)
+                for result, output in zip(results, outputs):
+                    answers.search_results.append(
+                        MinimalAnswer(answer=output, **result.model_dump())
+                    )
+                progress.update(len(outputs))
+        save_file_name = Path(student_search_result_path).name
+        save_file_path_obj = Path(save_directory) / save_file_name
+        self._files_manager.save_results(answers, str(save_file_path_obj))
+        self._tui.print(
+            "Saved student_search_results_and_answers to "
+            f"'{save_file_path_obj}'"
+        )
 
     def evaluate(
         self,
-        student_answer_path: str = "data/output/search_results/dataset_code_public.json",
-        dataset_path: str = "datasets_public/public/AnsweredQuestions/dataset_code_public.json",
+        student_answer_path: str = (
+            "data/output/search_results/dataset_code_public.json"
+        ),
+        dataset_path: str = (
+            "datasets_public/public/AnsweredQuestions/dataset_code_public.json"
+        ),
     ) -> None:
         """Evaluate the performance of the RAG pipeline.
 
@@ -129,4 +166,6 @@ class RAGPipeline:
         """
         evaluator = EvaluationProcessor(self._files_manager)
         metrics = evaluator.evaluate(student_answer_path, dataset_path)
-        print(metrics)
+        self._tui.print_evaluation_results(
+            metrics, dataset_path, student_answer_path
+        )

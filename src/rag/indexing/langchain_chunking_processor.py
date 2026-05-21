@@ -73,7 +73,4 @@ class LangChainChunkingProcessor:
                 ),
             )
         )
-        logger.info(
-            f"Split {len(self._files)} files into {len(chunks)} chunks."
-        )
         return [Chunk.from_document(chunk) for chunk in chunks]
