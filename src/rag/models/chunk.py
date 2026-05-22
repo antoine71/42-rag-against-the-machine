@@ -25,3 +25,7 @@ class Chunk(BaseModel):
             first_character_index=self.start_index,
             last_character_index=self.end_index,
         )
+
+    @property
+    def metadata(self) -> dict[str, str | int]:
+        return self.model_dump(exclude={"text"})

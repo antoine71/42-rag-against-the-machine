@@ -4,6 +4,7 @@ import uuid
 from pathlib import Path
 
 from rag.evaluating.evaluation_processor import EvaluationProcessor
+from rag.exceptions import RAGException
 from rag.indexing.bm25_repository_indexing_processor import (
     BM25RepositoryIndexingProcessor,
 )
@@ -11,6 +12,7 @@ from rag.indexing.files_repository_scanner import FilesRepositoryScanner
 from rag.indexing.langchain_chunking_processor import (
     LangChainChunkingProcessor,
 )
+from rag.indexing.vector_embedding_processor import VectorEmbeddingProcessor
 from rag.llm.llm_chat_processor import LLMChatProcessor
 from rag.models.question import UnansweredQuestion
 from rag.models.search_result import (
@@ -18,6 +20,9 @@ from rag.models.search_result import (
     StudentSearchResultsAndAnswer,
 )
 from rag.retrieving.bm25_retrieving_processor import BM25RetrievingProcessor
+from rag.retrieving.vector_retrieving_processor import (
+    VectorRetrievingProcessor,
+)
 from rag.tui import TUI
 from rag.utils.files_manager import FilesManager
 
@@ -34,6 +39,7 @@ class RAGPipeline:
         max_chunk_size: int = 2000,
         repository: str = "data/raw/vllm-0.10.1",
         save_directory: str = "data/processed/",
+        indexing_method: str = "bm25",
     ) -> None:
         repository_scanner = FilesRepositoryScanner(repository)
         files = repository_scanner.list_files()
@@ -45,7 +51,12 @@ class RAGPipeline:
         chunks = chunking_processor.split()
         self._tui.print(f"Split {len(files)} files into {len(chunks)} chunks.")
 
-        indexing_processor = BM25RepositoryIndexingProcessor(chunks)
+        if indexing_method == "bm25":
+            indexing_processor = BM25RepositoryIndexingProcessor(chunks)
+        elif indexing_method == "vector":
+            indexing_processor = VectorEmbeddingProcessor(chunks)
+        else:
+            raise RAGException(f"Invalid indexing method: '{indexing_method}'")
         indexing_processor.index_corpus(save_directory)
         self._tui.print(
             f"Ingestion complete! Indices saved under {save_directory}"
@@ -67,18 +78,21 @@ class RAGPipeline:
         ),
         k: int = 10,
         save_directory: str = "data/output/search_results",
+        retrieving_method: str = "bm25",
     ) -> None:
         dataset = self._files_manager.load_dataset(
             dataset_path, "unanswered_questions"
         )
-        retriever = BM25RetrievingProcessor()
-        results = retriever.retrieve(dataset.rag_questions, k)
-        save_file_name = Path(dataset_path).name
-        save_file_path_obj = Path(save_directory) / save_file_name
-        self._files_manager.save_results(results, str(save_file_path_obj))
-        self._tui.print(
-            f"Saved student_search_results to '{save_file_path_obj}'"
-        )
+        retriever = VectorRetrievingProcessor()
+        retriever.retrieve(dataset.rag_questions, k)
+        # retriever = BM25RetrievingProcessor()
+        # results = retriever.retrieve(dataset.rag_questions, k)
+        # save_file_name = Path(dataset_path).name
+        # save_file_path_obj = Path(save_directory) / save_file_name
+        # self._files_manager.save_results(results, str(save_file_path_obj))
+        # self._tui.print(
+        #     f"Saved student_search_results to '{save_file_path_obj}'"
+        # )
 
     def answer(self, query: str, k: int = 5, model="Qwen/Qwen3-0.6B") -> None:
         """Answer questions using the RAG model.

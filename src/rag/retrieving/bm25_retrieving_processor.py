@@ -3,9 +3,10 @@ import bm25s
 from rag.models.minimal_source import MinimalSource
 from rag.models.question import UnansweredQuestion
 from rag.models.search_result import MinimalSearchResults, StudentSearchResults
+from rag.retrieving.retrieving_processor import RetrievingProcessor
 
 
-class BM25RetrievingProcessor:
+class BM25RetrievingProcessor(RetrievingProcessor):
     def __init__(
         self,
     ) -> None:
