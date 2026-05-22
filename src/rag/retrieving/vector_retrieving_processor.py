@@ -1,4 +1,5 @@
 import chromadb
+import numpy as np
 import torch
 from sentence_transformers import SentenceTransformer
 
@@ -19,14 +20,15 @@ class VectorRetrievingProcessor(RetrievingProcessor):
     def retrieve(
         self, queries: list[UnansweredQuestion], k: int
     ) -> StudentSearchResults:
-        print(self._store.list_collections())
         collection = self._store.get_collection(self.COLLECTION)
-        corpus = collection.get(self.COLLECTION)
-        print(corpus["embeddings"])
-        print(len(corpus["metadatas"]))
-        print(corpus.keys())
+        corpus = collection.get(include=["embeddings"])
+        corpus_embeddings = np.array(corpus["embeddings"], dtype=np.float32)
+        print(corpus_embeddings.dtype)
         for query in queries:
-            query_embedding = self._embedder.encode_query(query.question)
+            query_embedding = np.array(
+                self._embedder.encode_query(query.question), dtype=np.float32
+            )
+            print(type(query_embedding.dtype))
             similarity_scores = self._embedder.similarity(
                 query_embedding, corpus["embeddings"]
             )[0]

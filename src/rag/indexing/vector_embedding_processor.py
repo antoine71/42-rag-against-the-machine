@@ -1,3 +1,5 @@
+import itertools
+
 import chromadb
 from sentence_transformers import SentenceTransformer
 
@@ -27,12 +29,20 @@ class VectorEmbeddingProcessor(IndexingProcessor):
         collection = chroma_client.create_collection(
             name="rag_vllm_repository"
         )
-        print(corpus_embeddings.tolist())
-        collection.add(
-            ids=[f"id{i}" for i in range(len(corpus_embeddings))],
-            embeddings=corpus_embeddings.tolist(),
-            documents=self._texts,
-            metadatas=self._metadatas,
-        )
-        c = collection.get(self.COLLECTION)
-        print(c["embeddings"])
+        ids = [f"id{i}" for i in range(len(corpus_embeddings))]
+
+        BATCH_SIZE = 300
+        batched_ids = itertools.batched(ids, BATCH_SIZE)
+        batched_embeddings = itertools.batched(corpus_embeddings, BATCH_SIZE)
+        batched_documents = itertools.batched(self._texts, BATCH_SIZE)
+        batched_metadatas = itertools.batched(self._metadatas, BATCH_SIZE)
+        while True:
+            try:
+                collection.add(
+                    ids=list(next(batched_ids)),
+                    embeddings=list(next(batched_embeddings)),
+                    documents=list(next(batched_documents)),
+                    metadatas=list(next(batched_metadatas)),
+                )
+            except StopIteration:
+                break
