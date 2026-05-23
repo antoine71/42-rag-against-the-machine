@@ -2,6 +2,7 @@ import itertools
 import logging
 import uuid
 from pathlib import Path
+from typing import Literal
 
 from rag.evaluating.evaluation_processor import EvaluationProcessor
 from rag.exceptions import RAGException
@@ -62,6 +63,31 @@ class RAGPipeline:
             f"Ingestion complete! Indices saved under {save_directory}"
         )
 
+    def test_vector(
+        self,
+        max_chunk_size: int = 2000,
+        repository: str = "data/raw/vllm-0.10.1",
+        save_directory: str = "data/processed/",
+        indexing_method: str = "bm25",
+        query="What are the differences between mm_kwargs and tok_kwargs when using the _call_hf_processor method in vLLM multimodal processing?",
+    ) -> None:
+        repository_scanner = FilesRepositoryScanner(repository)
+        files = repository_scanner.list_files()
+        self._tui.print(
+            f"Found {len(files)} py and md files from '{repository}'."
+        )
+
+        chunking_processor = LangChainChunkingProcessor(max_chunk_size, files)
+        chunks = chunking_processor.split()
+        self._tui.print(f"Split {len(files)} files into {len(chunks)} chunks.")
+
+        indexing_processor = VectorEmbeddingProcessor(chunks)
+        question = UnansweredQuestion(
+            question_id=str(uuid.uuid4()), question=query
+        )
+        results = indexing_processor.special_index([question], 10)
+        self._tui.print(results.model_dump_json(indent=4))
+
     def search(self, query: str, k=10) -> None:
         retriever = BM25RetrievingProcessor()
         question = UnansweredQuestion(
@@ -78,21 +104,25 @@ class RAGPipeline:
         ),
         k: int = 10,
         save_directory: str = "data/output/search_results",
-        retrieving_method: str = "bm25",
+        retrieving_method: Literal["bm25", "vector"] = "bm25",
     ) -> None:
         dataset = self._files_manager.load_dataset(
             dataset_path, "unanswered_questions"
         )
-        retriever = VectorRetrievingProcessor()
+        if retrieving_method == "bm25":
+            retriever = BM25RetrievingProcessor()
+        elif retrieving_method == "vector":
+            retriever = VectorRetrievingProcessor()
+        else:
+            raise NotImplementedError
         retriever.retrieve(dataset.rag_questions, k)
-        # retriever = BM25RetrievingProcessor()
-        # results = retriever.retrieve(dataset.rag_questions, k)
-        # save_file_name = Path(dataset_path).name
-        # save_file_path_obj = Path(save_directory) / save_file_name
-        # self._files_manager.save_results(results, str(save_file_path_obj))
-        # self._tui.print(
-        #     f"Saved student_search_results to '{save_file_path_obj}'"
-        # )
+        results = retriever.retrieve(dataset.rag_questions, k)
+        save_file_name = Path(dataset_path).name
+        save_file_path_obj = Path(save_directory) / save_file_name
+        self._files_manager.save_results(results, str(save_file_path_obj))
+        self._tui.print(
+            f"Saved student_search_results to '{save_file_path_obj}'"
+        )
 
     def answer(self, query: str, k: int = 5, model="Qwen/Qwen3-0.6B") -> None:
         """Answer questions using the RAG model.
@@ -162,10 +192,10 @@ class RAGPipeline:
     def evaluate(
         self,
         student_answer_path: str = (
-            "data/output/search_results/dataset_code_public.json"
+            "data/output/search_results/dataset_docs_public.json"
         ),
         dataset_path: str = (
-            "datasets_public/public/AnsweredQuestions/dataset_code_public.json"
+            "datasets_public/public/AnsweredQuestions/dataset_docs_public.json"
         ),
     ) -> None:
         """Evaluate the performance of the RAG pipeline.
