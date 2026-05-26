@@ -1,7 +1,6 @@
-import itertools
-
 import chromadb
 import torch
+from more_itertools import batched
 from sentence_transformers import SentenceTransformer
 
 from rag.indexing.indexing_processor import IndexingProcessor
@@ -36,10 +35,10 @@ class VectorEmbeddingProcessor(IndexingProcessor):
         ids = [f"id{i}" for i in range(len(corpus_embeddings))]
 
         BATCH_SIZE = 300
-        batched_ids = itertools.batched(ids, BATCH_SIZE)
-        batched_embeddings = itertools.batched(corpus_embeddings, BATCH_SIZE)
-        batched_documents = itertools.batched(self._texts, BATCH_SIZE)
-        batched_metadatas = itertools.batched(self._metadatas, BATCH_SIZE)
+        batched_ids = batched(ids, BATCH_SIZE)
+        batched_embeddings = batched(corpus_embeddings, BATCH_SIZE)
+        batched_documents = batched(self._texts, BATCH_SIZE)
+        batched_metadatas = batched(self._metadatas, BATCH_SIZE)
         while True:
             try:
                 collection.add(

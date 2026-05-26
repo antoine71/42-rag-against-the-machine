@@ -1,4 +1,5 @@
 import logging
+import os
 from pathlib import Path
 
 from rag.exceptions import RAGException
@@ -26,13 +27,13 @@ class FilesRepositoryScanner:
 
     def list_files(self) -> list[Path]:
         data_files: list[Path] = []
-        for root, _, files in self._repository_path.walk(
-            on_error=self._error_handler
+        for root, _, files in os.walk(
+            str(self._repository_path), onerror=self._error_handler
         ):
             for file in files:
-                file_path = root / file
+                file_path = Path(root) / file
                 if self._is_file_valid(file_path):
-                    data_files.append(root / file)
+                    data_files.append(Path(root) / file)
         logger.debug(
             f"Found {len(data_files)} files:\n {[str(f) for f in data_files]}"
         )

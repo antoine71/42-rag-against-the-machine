@@ -16,7 +16,7 @@ class Chunk(BaseModel):
         return self.start_index + len(self.text)
 
     @classmethod
-    def from_document(cls, document: Document) -> Chunk:
+    def from_document(cls, document: Document) -> "Chunk":
         return cls(text=document.page_content, **document.metadata)
 
     def to_minimal_source(self) -> MinimalSource:

@@ -1,8 +1,9 @@
-import itertools
 import logging
 import uuid
 from pathlib import Path
 from typing import Literal
+
+from more_itertools import batched
 
 from rag.evaluation.evaluation_processor import EvaluationProcessor
 from rag.exceptions import RAGException
@@ -118,7 +119,6 @@ class RAGPipeline:
             retriever = VectorRetrievingProcessor()
         else:
             raise NotImplementedError
-        retriever.retrieve(dataset.rag_questions, k)
         results = retriever.retrieve(dataset.rag_questions, k)
         save_file_name = Path(dataset_path).name
         save_file_path_obj = Path(save_directory) / save_file_name
@@ -175,9 +175,7 @@ class RAGPipeline:
         with self._tui.progress(
             "Processing queries", total, "query"
         ) as progress:
-            for results in itertools.batched(
-                search_results.search_results, batch_size
-            ):
+            for results in batched(search_results.search_results, batch_size):
                 outputs = chat_processor.answer_batch_query(results)
                 for result, output in zip(results, outputs):
                     answers.search_results.append(
