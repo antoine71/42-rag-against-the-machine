@@ -4,7 +4,7 @@ import uuid
 from pathlib import Path
 from typing import Literal
 
-from rag.evaluating.evaluation_processor import EvaluationProcessor
+from rag.evaluation.evaluation_processor import EvaluationProcessor
 from rag.exceptions import RAGException
 from rag.indexing.bm25_repository_indexing_processor import (
     BM25RepositoryIndexingProcessor,
@@ -48,6 +48,9 @@ class RAGPipeline:
             f"Found {len(files)} py and md files from '{repository}'."
         )
 
+        logger.debug(
+            f"Chunking '{repository}' into chunks of size '{max_chunk_size}'."
+        )
         chunking_processor = LangChainChunkingProcessor(max_chunk_size, files)
         chunks = chunking_processor.split()
         self._tui.print(f"Split {len(files)} files into {len(chunks)} chunks.")
@@ -89,7 +92,7 @@ class RAGPipeline:
         self._tui.print(results.model_dump_json(indent=4))
 
     def search(self, query: str, k=10) -> None:
-        retriever = BM25RetrievingProcessor()
+        retriever = VectorRetrievingProcessor()
         question = UnansweredQuestion(
             question_id=str(uuid.uuid4()), question=query
         )

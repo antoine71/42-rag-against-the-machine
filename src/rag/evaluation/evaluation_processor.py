@@ -39,7 +39,7 @@ class EvaluationProcessor:
             )
         )
         if not self._is_data_valid(student_answers, dataset):
-            return RecallEvaluation()
+            return evaluation
         evaluation = self._init_evaluation(student_answers, dataset)
         evaluation.recall_1 = self._calculate_metric(
             student_answers, dataset, 1
@@ -60,14 +60,17 @@ class EvaluationProcessor:
         student_answers: StudentSearchResults,
         dataset: RagDataset[AnsweredQuestion],
         k: int,
-    ):
+    ) -> float:
         metrics: list[float] = []
         for question in dataset.rag_questions:
-            student_search = next(
-                s
-                for s in student_answers.search_results
-                if s.question_id == question.question_id
-            )
+            try:
+                student_search = next(
+                    s
+                    for s in student_answers.search_results
+                    if s.question_id == question.question_id
+                )
+            except StopIteration:
+                return 0.0
             truth_sources = question.sources
             student_sources = student_search.retrieved_sources[
                 : min(k, len(student_search.retrieved_sources))
@@ -94,6 +97,11 @@ class EvaluationProcessor:
     ) -> float:
         if truth_source.file_path != student_source.file_path:
             return 0.0
+        if (
+            truth_source.first_character_index
+            == truth_source.last_character_index
+        ):
+            return 0.0
         overlap_start = max(
             truth_source.first_character_index,
             student_source.first_character_index,
@@ -102,7 +110,7 @@ class EvaluationProcessor:
             truth_source.last_character_index,
             student_source.last_character_index,
         )
-        len_overlap = overlap_end - overlap_start
+        len_overlap = max(0, overlap_end - overlap_start)
         return len_overlap / (
             truth_source.last_character_index
             - truth_source.first_character_index

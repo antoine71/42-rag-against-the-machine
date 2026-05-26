@@ -21,6 +21,7 @@ def init_logger() -> None:
         level=logging.ERROR,
     )
     logging.getLogger("bm25s").setLevel(logging.ERROR)
+    # logging.getLogger("rag").setLevel(logging.DEBUG)
 
 
 def error_handler(e: Exception, error_type: str) -> None:
@@ -32,6 +33,7 @@ def error_handler(e: Exception, error_type: str) -> None:
 def main() -> None:
     try:
         init_logger()
+        logger.debug("Starting App...")
         run_app()
     except KeyboardInterrupt:
         sys.exit(1)
@@ -41,3 +43,4 @@ def main() -> None:
     except Exception as e:
         error_handler(e, "Unexpected error")
         sys.exit(1)
+

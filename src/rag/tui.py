@@ -4,7 +4,7 @@ from textwrap import dedent
 
 from tqdm import tqdm
 
-from rag.evaluating.evaluation_processor import RecallEvaluation
+from rag.evaluation.evaluation_processor import RecallEvaluation
 
 
 class TUI:

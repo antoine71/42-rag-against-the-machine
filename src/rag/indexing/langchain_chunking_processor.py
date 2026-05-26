@@ -3,12 +3,14 @@ import logging
 from collections.abc import Generator
 from pathlib import Path
 
+from bs4 import BeautifulSoup
 from langchain_core.documents import Document
 from langchain_text_splitters import (
     MarkdownTextSplitter,
     PythonCodeTextSplitter,
     TextSplitter,
 )
+import mistune
 
 from rag.models.chunk import Chunk
 
@@ -29,10 +31,10 @@ class LangChainChunkingProcessor:
             length_function=len,
         )
         self._python_text_splitter = PythonCodeTextSplitter(
-            length_function=len,
             chunk_size=chunk_size,
             chunk_overlap=max(10, chunk_size // 20),
             add_start_index=True,
+            length_function=len,
         )
 
     def _get_document_type(self, file: Path) -> str:
@@ -45,6 +47,7 @@ class LangChainChunkingProcessor:
                 raise NotImplementedError
 
     def _documents_generator(self) -> Generator[Document]:
+        logger.debug(f"Splitting files: '{self._files}'")
         for file in self._files:
             yield Document(
                 page_content=file.read_text(),
@@ -54,6 +57,14 @@ class LangChainChunkingProcessor:
                 },
             )
 
+    def _clean_markdown(self, document: Document) -> str:
+
+        html_content = mistune.html(document.page_content)
+        soup = BeautifulSoup(html_content, "html.parser")
+        cleaned = soup.get_text(separator=" ").strip()
+        document.page_content = cleaned
+        return document
+
     def _split_documents(
         self, doc_type: str, splitter: TextSplitter
     ) -> list[Document]:
@@ -62,7 +73,10 @@ class LangChainChunkingProcessor:
             for doc in self._documents_generator()
             if doc.metadata["type"] == doc_type
         )
-        return splitter.split_documents(documents)
+        split = splitter.split_documents(documents)
+        # if doc_type == "markdown":
+        #     split = [self._clean_markdown(s) for s in split]
+        return split
 
     def split(self) -> list[Chunk]:
         chunks = list(
@@ -73,4 +87,5 @@ class LangChainChunkingProcessor:
                 ),
             )
         )
+
         return [Chunk.from_document(chunk) for chunk in chunks]

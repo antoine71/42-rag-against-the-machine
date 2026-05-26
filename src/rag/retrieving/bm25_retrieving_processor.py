@@ -4,7 +4,7 @@ from rag.models.minimal_source import MinimalSource
 from rag.models.question import UnansweredQuestion
 from rag.models.search_result import MinimalSearchResults, StudentSearchResults
 from rag.retrieving.retrieving_processor import RetrievingProcessor
-
+import Stemmer
 
 class BM25RetrievingProcessor(RetrievingProcessor):
     def __init__(
@@ -17,7 +17,8 @@ class BM25RetrievingProcessor(RetrievingProcessor):
     def retrieve(
         self, queries: list[UnansweredQuestion], k: int
     ) -> StudentSearchResults:
-        query_tokens = bm25s.tokenize([query.question for query in queries])
+        stemmer = Stemmer.Stemmer("english")
+        query_tokens = bm25s.tokenize([query.question for query in queries], stemmer=stemmer)
         results, _ = self._retriever.retrieve(
             query_tokens, show_progress=True, leave_progress=True
         )

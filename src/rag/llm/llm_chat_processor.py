@@ -57,7 +57,6 @@ class LLMChatProcessor:
             if self._tokenizer.chat_template is not None
             else SimplePromptGenerator
         )
-        print(prompt_generator.__name__)
         self._prompt_generator = prompt_generator(
             self._tokenizer, self._files_manager, k
         )
