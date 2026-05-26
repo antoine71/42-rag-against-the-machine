@@ -8,3 +8,21 @@ wheels/
 
 # Virtual environments
 .venv
+
+#.env
+.env
+
+# data
+data/
+datasets_public/
+moulinette_pkg/
+fly_in
+
+#log
+rag.log
+
+#subject
+en.subject.pdf
+
+#vscode
+.vscode
