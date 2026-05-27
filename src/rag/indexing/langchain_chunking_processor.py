@@ -3,6 +3,7 @@ import logging
 from collections.abc import Generator
 from pathlib import Path
 
+import mistune
 from bs4 import BeautifulSoup
 from langchain_core.documents import Document
 from langchain_text_splitters import (
@@ -10,9 +11,8 @@ from langchain_text_splitters import (
     PythonCodeTextSplitter,
     TextSplitter,
 )
-import mistune
 
-from rag.models.chunk import Chunk
+from rag.models.chunk import Chunk, FileType
 
 logger = logging.getLogger(__name__)
 
@@ -37,28 +37,18 @@ class LangChainChunkingProcessor:
             length_function=len,
         )
 
-    def _get_document_type(self, file: Path) -> str:
-        match file.suffix:
-            case ".py":
-                return "python"
-            case ".md":
-                return "markdown"
-            case _:
-                raise NotImplementedError
-
     def _documents_generator(self) -> Generator[Document]:
         logger.debug(f"Splitting files: '{self._files}'")
         for file in self._files:
             yield Document(
                 page_content=file.read_text(),
                 metadata={
-                    "source": str(file),
-                    "type": self._get_document_type(file),
+                    "file_path": str(file),
+                    "type": FileType.from_file(file),
                 },
             )
 
-    def _clean_markdown(self, document: Document) -> str:
-
+    def _clean_markdown(self, document: Document) -> Document:
         html_content = mistune.html(document.page_content)
         soup = BeautifulSoup(html_content, "html.parser")
         cleaned = soup.get_text(separator=" ").strip()
@@ -74,7 +64,7 @@ class LangChainChunkingProcessor:
             if doc.metadata["type"] == doc_type
         )
         split = splitter.split_documents(documents)
-        # if doc_type == "markdown":
+        # if doc_type == FileType.MARKDOWN:
         #     split = [self._clean_markdown(s) for s in split]
         return split
 
@@ -87,5 +77,4 @@ class LangChainChunkingProcessor:
                 ),
             )
         )
-
         return [Chunk.from_document(chunk) for chunk in chunks]

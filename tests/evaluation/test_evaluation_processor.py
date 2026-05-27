@@ -1,3 +1,4 @@
+import uuid
 from unittest.mock import MagicMock
 
 import pytest
@@ -18,6 +19,7 @@ def valid_student_answers() -> StudentSearchResults:
                 question="q1",
                 retrieved_sources=[
                     MinimalSource(
+                        chunk_id=str(uuid.uuid4()),
                         file_path="f1",
                         first_character_index=0,
                         last_character_index=100,
@@ -39,6 +41,7 @@ def valid_dataset() -> RagDataset[AnsweredQuestion]:
                 answer="a1",
                 sources=[
                     MinimalSource(
+                        chunk_id=str(uuid.uuid4()),
                         file_path="f1",
                         first_character_index=0,
                         last_character_index=100,
@@ -197,11 +200,13 @@ class TestEvaluationProcessor:
         evaluation_processor: EvaluationProcessor,
     ):
         truth_source_obj = MinimalSource(
+            chunk_id=str(uuid.uuid4()),
             file_path=truth_source[0],
             first_character_index=truth_source[1],
             last_character_index=truth_source[2],
         )
         student_source_obj = MinimalSource(
+            chunk_id=str(uuid.uuid4()),
             file_path=student_source[0],
             first_character_index=student_source[1],
             last_character_index=student_source[2],

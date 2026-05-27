@@ -53,7 +53,7 @@ class VectorEmbeddingProcessor(IndexingProcessor):
     def special_index(
         self, queries: list[UnansweredQuestion], k: int
     ) -> StudentSearchResults:
-        corpus_embeddings = self._embedder.encode_document(
+        corpus_embeddings = self._embedder.encode(
             self._texts, show_progress_bar=True
         )
         results = []

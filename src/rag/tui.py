@@ -49,3 +49,15 @@ class TUI:
             yield pbar
         finally:
             pbar.close()
+
+
+_tui_instance = None
+
+
+def get_tui() -> TUI:
+    global _tui_instance
+
+    if _tui_instance is None:
+        _tui_instance = TUI()
+
+    return _tui_instance

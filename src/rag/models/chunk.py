@@ -1,29 +1,51 @@
+from pathlib import Path
+
 from langchain_core.documents import Document
 from pydantic import BaseModel, computed_field
+from strenum import StrEnum
 
 from rag.models.minimal_source import MinimalSource
 
 
+class FileType(StrEnum):
+    PYTHON = "python"
+    MARKDOWN = "markdown"
+
+    @classmethod
+    def from_file(cls, file: Path) -> "FileType":
+        match file.suffix:
+            case ".py":
+                return cls.PYTHON
+            case ".md":
+                return cls.MARKDOWN
+        raise ValueError(f"Invalid file suffix '{file.suffix}'")
+
+
 class Chunk(BaseModel):
     text: str
-    source: str
-    type: str
-    start_index: int
+    file_path: str
+    type: FileType
+    first_character_index: int
 
     @computed_field
     @property
-    def end_index(self) -> int:
-        return self.start_index + len(self.text)
+    def last_character_index(self) -> int:
+        return self.first_character_index + len(self.text)
 
     @classmethod
     def from_document(cls, document: Document) -> "Chunk":
-        return cls(text=document.page_content, **document.metadata)
+        return cls(
+            text=document.page_content,
+            file_path=document.metadata["file_path"],
+            type=document.metadata["type"],
+            first_character_index=document.metadata["start_index"],
+        )
 
     def to_minimal_source(self) -> MinimalSource:
         return MinimalSource(
-            file_path=self.source,
-            first_character_index=self.start_index,
-            last_character_index=self.end_index,
+            file_path=self.file_path,
+            first_character_index=self.first_character_index,
+            last_character_index=self.last_character_index,
         )
 
     @property

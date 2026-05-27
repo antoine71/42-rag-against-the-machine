@@ -4,7 +4,7 @@ from typing import cast
 import chromadb
 import numpy as np
 import torch
-from sentence_transformers import CrossEncoder, SentenceTransformer
+from sentence_transformers import SentenceTransformer
 from sentence_transformers.util import dot_score, semantic_search
 from transformers import AutoModelForCausalLM, AutoTokenizer, TokenizersBackend
 
@@ -16,6 +16,7 @@ from rag.retrieving.retrieving_processor import RetrievingProcessor
 
 class VectorRetrievingProcessor(RetrievingProcessor):
     COLLECTION = "rag_vllm_repository"
+    WEIGHT = 1.0
 
     def __init__(self) -> None:
         self._embedder = SentenceTransformer(
@@ -81,50 +82,55 @@ class VectorRetrievingProcessor(RetrievingProcessor):
         )
         corpus_embeddings = np.array(corpus["embeddings"], dtype=np.float32)
         results = []
-        queries_str = [q.question for q in queries]
-        enhanced_queries = self._enhance_query(queries_str)
-        query_embeddings = self._embedder.encode_query(enhanced_queries)
-        similarity_results = semantic_search(
-            query_embeddings,
-            corpus_embeddings,
-            top_k=100,
-            score_function=dot_score,
-        )
-        print(similarity_results)
-        for i, similarity_scores in enumerate(similarity_results):
+        # queries_str = [q.question for q in queries]
+        # enhanced_queries = self._enhance_query(queries_str)
+        # query_embeddings = self._embedder.encode_query(enhanced_queries)
+        # similarity_results = semantic_search(
+        #     query_embeddings,
+        #     corpus_embeddings,
+        #     top_k=100,
+        #     score_function=dot_score,
+        # )
+        # print(similarity_results)
+        # for i, similarity_scores in enumerate(similarity_results):
+        for i, query in enumerate(queries):
             print(i)
-            # query_embedding = self._embedder.encode_query(
-            #     query,  # convert_to_numpy=True, precision="float32"
-            # )
-            # similarity_scores = semantic_search(
-            #     query_embedding, corpus_embeddings, top_k=100, score_function=dot_score
-            # )[0]
+            query_embedding = self._embedder.encode_query(
+                query.question,  # convert_to_numpy=True, precision="float32"
+            )
+            similarity_scores = semantic_search(
+                query_embedding,
+                corpus_embeddings,
+                top_k=k,
+                score_function=dot_score,
+            )[0]
+            indices = [s["corpus_id"] for s in similarity_scores]
             # similarity_scores = self._embedder.similarity(
             #     query_embedding, corpus_embeddings
             # )[0]
             # scores, indices = torch.topk(similarity_scores, k=k)
             # print(scores, indices)
-            documents = [
-                (
-                    corpus["documents"][score["corpus_id"]],
-                    corpus["metadatas"][score["corpus_id"]],
-                )
-                for score in similarity_scores
-            ]
-            model_inputs = [
-                (enhanced_queries[i], document[0]) for document in documents
-            ]
-            model = CrossEncoder("cross-encoder/ms-marco-TinyBERT-L2")
-            scores = model.predict(model_inputs, batch_size=10)
-            results_cross = [
-                {"document": doc, "score": score}
-                for doc, score in zip(documents, scores)
-            ]
-            results_cross = sorted(
-                results_cross, key=lambda x: x["score"], reverse=True
-            )
-            results.append([res["document"][1] for res in results_cross][:k])
-            # results.append([corpus["metadatas"][idx] for idx in indices])
+            # documents = [
+            #     (
+            #         corpus["documents"][score["corpus_id"]],
+            #         corpus["metadatas"][score["corpus_id"]],
+            #     )
+            #     for score in similarity_scores
+            # ]
+            # model_inputs = [
+            #     (enhanced_queries[i], document[0]) for document in documents
+            # ]
+            # model = CrossEncoder("cross-encoder/ms-marco-TinyBERT-L2")
+            # scores = model.predict(model_inputs, batch_size=10)
+            # results_cross = [
+            #     {"document": doc, "score": score}
+            #     for doc, score in zip(documents, scores)
+            # ]
+            # results_cross = sorted(
+            #     results_cross, key=lambda x: x["score"], reverse=True
+            # )
+            # results.append([res["document"][1] for res in results_cross][:k])
+            results.append([corpus["metadatas"][idx] for idx in indices])
 
         search_result = []
         for i, result in enumerate(results):
