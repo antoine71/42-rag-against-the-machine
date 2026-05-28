@@ -44,9 +44,7 @@ class TUI:
         print(data)
 
     @contextmanager
-    def progress(
-        self, desc: str, total: int, unit: str
-    ) -> Generator[tqdm[Any]]:
+    def progress(self, desc: str, total: int, unit: str) -> Generator[Any]:
         pbar = tqdm(total=total, desc=desc, unit=unit)
         try:
             yield pbar

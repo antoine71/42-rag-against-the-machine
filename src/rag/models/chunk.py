@@ -1,13 +1,13 @@
+from enum import Enum
 from pathlib import Path
 
 from langchain_core.documents import Document
 from pydantic import BaseModel, computed_field
-from strenum import StrEnum
 
 from rag.models.minimal_source import MinimalSource
 
 
-class FileType(StrEnum):
+class FileType(str, Enum):
     PYTHON = "python"
     MARKDOWN = "markdown"
 
@@ -27,8 +27,8 @@ class Chunk(BaseModel):
     type: FileType
     first_character_index: int
 
+    @computed_field  # type: ignore[prop-decorator]
     @property
-    @computed_field
     def last_character_index(self) -> int:
         return self.first_character_index + len(self.text)
 
