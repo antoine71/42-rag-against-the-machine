@@ -1,6 +1,7 @@
 from collections.abc import Generator
 from contextlib import contextmanager
 from textwrap import dedent
+from typing import Any
 
 from tqdm import tqdm
 
@@ -43,7 +44,9 @@ class TUI:
         print(data)
 
     @contextmanager
-    def progress(self, desc: str, total: int, unit: str) -> Generator[tqdm]:
+    def progress(
+        self, desc: str, total: int, unit: str
+    ) -> Generator[tqdm[Any]]:
         pbar = tqdm(total=total, desc=desc, unit=unit)
         try:
             yield pbar

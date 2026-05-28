@@ -1,4 +1,3 @@
-import uuid
 from unittest.mock import MagicMock
 
 import pytest
@@ -19,7 +18,6 @@ def valid_student_answers() -> StudentSearchResults:
                 question="q1",
                 retrieved_sources=[
                     MinimalSource(
-                        chunk_id=str(uuid.uuid4()),
                         file_path="f1",
                         first_character_index=0,
                         last_character_index=100,
@@ -41,7 +39,6 @@ def valid_dataset() -> RagDataset[AnsweredQuestion]:
                 answer="a1",
                 sources=[
                     MinimalSource(
-                        chunk_id=str(uuid.uuid4()),
                         file_path="f1",
                         first_character_index=0,
                         last_character_index=100,
@@ -83,28 +80,46 @@ class TestEvaluationProcessor:
             )
             == 1.0
         )
-        with monkeypatch.context() as m:
-            m.setattr(
-                valid_student_answers.search_results[0], "question_id", "id2"
-            )
-            assert (
-                evaluation_processor._calculate_metric(
-                    valid_student_answers, valid_dataset, 1
+        invalid = StudentSearchResults(
+            search_results=[
+                MinimalSearchResults(
+                    question_id="id2",
+                    question="q1",
+                    retrieved_sources=[
+                        MinimalSource(
+                            file_path="f1",
+                            first_character_index=0,
+                            last_character_index=100,
+                        )
+                    ],
                 )
-                == 0.0
-            )
-        with monkeypatch.context() as m:
-            m.setattr(
-                valid_student_answers.search_results[0].retrieved_sources[0],
-                "file_path",
-                "f2",
-            )
-            assert (
-                evaluation_processor._calculate_metric(
-                    valid_student_answers, valid_dataset, 1
+            ],
+            k=1,
+        )
+        assert (
+            evaluation_processor._calculate_metric(invalid, valid_dataset, 1)
+            == 0.0
+        )
+        invalid = StudentSearchResults(
+            search_results=[
+                MinimalSearchResults(
+                    question_id="id1",
+                    question="q1",
+                    retrieved_sources=[
+                        MinimalSource(
+                            file_path="f2",
+                            first_character_index=0,
+                            last_character_index=100,
+                        )
+                    ],
                 )
-                == 0.0
-            )
+            ],
+            k=1,
+        )
+        assert (
+            evaluation_processor._calculate_metric(invalid, valid_dataset, 1)
+            == 0.0
+        )
 
     def test_is_data_valid(
         self,
@@ -136,34 +151,28 @@ class TestEvaluationProcessor:
     def test_is_data_valid_ids_invalid_sources(
         self,
         evaluation_processor: EvaluationProcessor,
-        valid_student_answers: StudentSearchResults,
         valid_dataset: RagDataset[AnsweredQuestion],
-        monkeypatch: pytest.MonkeyPatch,
     ) -> None:
-        with monkeypatch.context() as m:
-            m.setattr(
-                valid_student_answers.search_results[0].retrieved_sources[0],
-                "first_character_index",
-                1000,
-            )
-            assert (
-                evaluation_processor._is_data_valid(
-                    valid_student_answers, valid_dataset
+        invalid = StudentSearchResults(
+            search_results=[
+                MinimalSearchResults(
+                    question_id="id1",
+                    question="q1",
+                    retrieved_sources=[
+                        MinimalSource(
+                            file_path="f1",
+                            first_character_index=1000,
+                            last_character_index=100,
+                        )
+                    ],
                 )
-                is False
-            )
-        with monkeypatch.context() as m:
-            m.setattr(
-                valid_dataset.rag_questions[0].sources[0],
-                "first_character_index",
-                1000,
-            )
-            assert (
-                evaluation_processor._is_data_valid(
-                    valid_student_answers, valid_dataset
-                )
-                is False
-            )
+            ],
+            k=1,
+        )
+        assert (
+            evaluation_processor._is_data_valid(invalid, valid_dataset)
+            is False
+        )
 
     def test_init_evaluation(
         self,
@@ -200,13 +209,11 @@ class TestEvaluationProcessor:
         evaluation_processor: EvaluationProcessor,
     ):
         truth_source_obj = MinimalSource(
-            chunk_id=str(uuid.uuid4()),
             file_path=truth_source[0],
             first_character_index=truth_source[1],
             last_character_index=truth_source[2],
         )
         student_source_obj = MinimalSource(
-            chunk_id=str(uuid.uuid4()),
             file_path=student_source[0],
             first_character_index=student_source[1],
             last_character_index=student_source[2],

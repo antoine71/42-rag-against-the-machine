@@ -3,8 +3,6 @@ import logging
 from collections.abc import Generator
 from pathlib import Path
 
-import mistune
-from bs4 import BeautifulSoup
 from langchain_core.documents import Document
 from langchain_text_splitters import (
     MarkdownTextSplitter,
@@ -48,13 +46,6 @@ class LangChainChunkingProcessor:
                 },
             )
 
-    def _clean_markdown(self, document: Document) -> Document:
-        html_content = mistune.html(document.page_content)
-        soup = BeautifulSoup(html_content, "html.parser")
-        cleaned = soup.get_text(separator=" ").strip()
-        document.page_content = cleaned
-        return document
-
     def _split_documents(
         self, doc_type: str, splitter: TextSplitter
     ) -> list[Document]:
@@ -64,8 +55,6 @@ class LangChainChunkingProcessor:
             if doc.metadata["type"] == doc_type
         )
         split = splitter.split_documents(documents)
-        # if doc_type == FileType.MARKDOWN:
-        #     split = [self._clean_markdown(s) for s in split]
         return split
 
     def split(self) -> list[Chunk]:

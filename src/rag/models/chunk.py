@@ -27,8 +27,8 @@ class Chunk(BaseModel):
     type: FileType
     first_character_index: int
 
-    @computed_field
     @property
+    @computed_field
     def last_character_index(self) -> int:
         return self.first_character_index + len(self.text)
 

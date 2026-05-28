@@ -1,6 +1,5 @@
-from typing import Any
+from typing import Any, Mapping, Sequence
 
-from numpy.typing import NDArray
 from pydantic import AliasChoices, BaseModel, Field
 
 from rag.models.minimal_source import MinimalSource
@@ -17,7 +16,7 @@ class MinimalSearchResults(BaseModel):
 
     @classmethod
     def from_query_and_sources(
-        cls, query: UnansweredQuestion, sources: NDArray[Any]
+        cls, query: UnansweredQuestion, sources: list[Mapping[str, Any]]
     ) -> "MinimalSearchResults":
         return cls(
             question_id=query.question_id,
@@ -31,9 +30,9 @@ class MinimalAnswer(MinimalSearchResults):
 
 
 class StudentSearchResults(BaseModel):
-    search_results: list[MinimalSearchResults]
+    search_results: Sequence[MinimalSearchResults]
     k: int
 
 
 class StudentSearchResultsAndAnswer(StudentSearchResults):
-    search_results: list[MinimalAnswer]
+    search_results: Sequence[MinimalAnswer]

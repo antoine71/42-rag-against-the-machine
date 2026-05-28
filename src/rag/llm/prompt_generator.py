@@ -1,31 +1,24 @@
 import itertools
-from abc import abstractmethod
-from typing import cast
-
-from transformers import (
-    BatchEncoding,
-    TokenizersBackend,
-)
 
 from rag.models.minimal_source import MinimalSource
 from rag.models.search_result import MinimalSearchResults
 from rag.utils.files_manager import FilesManager
 
 
-class PromptGenerator:
-    def __init__(
-        self, tokenizer: TokenizersBackend, files_manager: FilesManager, k: int
-    ) -> None:
-        self._tokenizer = tokenizer
+class ChatTemplatePromptGenerator:
+    def __init__(self, files_manager: FilesManager, k: int) -> None:
         self._files_manager = files_manager
         self._k = k
 
-    @abstractmethod
-    def generate_tokens(
-        self, input: tuple[MinimalSearchResults, ...]
-    ) -> BatchEncoding: ...
+    def generate_prompt(
+        self, input: list[MinimalSearchResults]
+    ) -> list[list[dict[str, str]]]:
+        messages = self._build_messages(input)
+        return messages
 
-    def _build_messages(self, input: tuple[MinimalSearchResults, ...]):
+    def _build_messages(
+        self, input: list[MinimalSearchResults]
+    ) -> list[list[dict[str, str]]]:
         return [
             [
                 self._system_prompt,
@@ -69,50 +62,13 @@ class PromptGenerator:
             "role": "system",
             "content": (
                 "You are a precise and helpful assistant. Answer the user's "
-                "question using ONLY the "
-                "retrieved context provided below. Follow these rules strictly:\n"
-                '- If the answer is not in the context, say: "I don\'t have enough information to answer that."\n'
+                "question using ONLY the retrieved context provided below. "
+                "Follow these rules strictly:\n"
+                "- If the answer is not in the context, say: \"I don't have "
+                'enough information to answer that."\n'
                 "- Do not use outside knowledge or make up information.\n"
                 "- Keep answers concise and grounded in the provided text.\n"
-                "- When possible, cite which document/source supports your answer."
+                "- When possible, cite which document/source supports your "
+                "answer."
             ),
         }
-
-
-class SimplePromptGenerator(PromptGenerator):
-    def generate_tokens(
-        self, input: tuple[MinimalSearchResults, ...]
-    ) -> BatchEncoding:
-        messages = self._build_messages(input)
-        prompts: list[str] = []
-        for message in messages:
-            prompts.append("\n\n".join(m["content"] for m in message))
-        return cast(
-            BatchEncoding,
-            self._tokenizer(
-                prompts,
-                tokenize=True,
-                padding=True,
-                add_generation_prompt=True,
-                enable_thinking=False,
-                return_tensors="pt",
-            ),
-        )
-
-
-class ChatTemplatePromptGenerator(PromptGenerator):
-    def generate_tokens(
-        self, input: tuple[MinimalSearchResults, ...]
-    ) -> BatchEncoding:
-        messages = self._build_messages(input)
-        return cast(
-            BatchEncoding,
-            self._tokenizer.apply_chat_template(
-                messages,
-                tokenize=True,
-                padding=True,
-                add_generation_prompt=True,
-                enable_thinking=False,
-                return_tensors="pt",
-            ),
-        )

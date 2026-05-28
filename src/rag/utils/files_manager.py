@@ -1,6 +1,6 @@
 import json
 from pathlib import Path
-from typing import Literal
+from typing import Literal, overload
 
 from pydantic import ValidationError
 
@@ -38,11 +38,25 @@ class FilesManager:
                 f"Failed to save results '{file_path}': {str(e)}"
             ) from e
 
+    @overload
+    def load_dataset(
+        self,
+        dataset_path: str,
+        dataset_type: Literal["answered_questions"],
+    ) -> RagDataset[AnsweredQuestion]: ...
+
+    @overload
+    def load_dataset(
+        self,
+        dataset_path: str,
+        dataset_type: Literal["unanswered_questions"],
+    ) -> RagDataset[UnansweredQuestion]: ...
+
     def load_dataset(
         self,
         dataset_path: str,
         dataset_type: Literal["answered_questions", "unanswered_questions"],
-    ) -> RagDataset:
+    ) -> RagDataset[AnsweredQuestion] | RagDataset[UnansweredQuestion]:
         try:
             file_content_obj = json.loads(Path(dataset_path).read_text())
             if dataset_type == "answered_questions":
@@ -66,9 +80,9 @@ class FilesManager:
                 f"Failed to open file '{source.file_path}': {e}"
             ) from e
         try:
-            return content[
-                source.first_character_index : source.last_character_index + 1
-            ]
+            start = source.first_character_index
+            end = source.last_character_index + 1
+            return content[start:end]
         except IndexError as e:
             raise FilesManagerError(
                 f"Failed extract chunk from file '{source.file_path}': {e}"

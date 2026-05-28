@@ -120,7 +120,7 @@ class EvaluationProcessor:
         self,
         student_answers: StudentSearchResults,
         dataset: RagDataset[AnsweredQuestion],
-    ):
+    ) -> RecallEvaluation:
         evaluation = RecallEvaluation()
         evaluation.data_is_valid = True
         evaluation.number_of_questions = len(dataset.rag_questions)

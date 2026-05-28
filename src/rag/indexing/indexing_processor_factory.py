@@ -1,9 +1,10 @@
-from typing import Any
+from collections.abc import Callable
 
+from rag.config.bm25 import BM25Configuration
+from rag.config.embedding import EmbeddingConfig
 from rag.exceptions import RAGException
-from rag.indexing.bm25_repository_indexing_processor import (
+from rag.indexing.bm25_indexing_processor import (
     BM25IndexingProcessor,
-    BM25MultiIndexingProcessor,
 )
 from rag.indexing.indexing_processor import IndexingProcessor
 from rag.indexing.vector_embedding_processor import VectorEmbeddingProcessor
@@ -12,22 +13,27 @@ from rag.tui import TUI
 
 
 class IndexingProcessorFactory:
-    _processors: dict[str, type[IndexingProcessor]] = {
-        "vector": VectorEmbeddingProcessor,
-        "bm25": BM25IndexingProcessor,
-        "bm25_multi": BM25MultiIndexingProcessor,
-    }
-
     @classmethod
     def create(
         cls,
         indexing_method: str,
         chunks: list[Chunk],
         tui: TUI,
-        config: dict[str, Any],
-    ) -> IndexingProcessor:
-        try:
-            processor_cls = cls._processors[indexing_method]
-        except KeyError:
-            raise RAGException(f"Invalid indexing method: {indexing_method}")
-        return processor_cls(chunks, tui, config)
+    ) -> list[IndexingProcessor]:
+        bm25_factory: Callable[[], BM25IndexingProcessor] = lambda: (
+            BM25IndexingProcessor(chunks, tui, BM25Configuration())
+        )
+        vector_factory: Callable[[], VectorEmbeddingProcessor] = lambda: (
+            VectorEmbeddingProcessor(chunks, tui, EmbeddingConfig())
+        )
+        match indexing_method:
+            case "bm25":
+                return [bm25_factory()]
+            case "vector":
+                return [vector_factory()]
+            case "hybrid":
+                return [bm25_factory(), vector_factory()]
+            case _:
+                raise RAGException(
+                    f"Invalid indexing method: {indexing_method}"
+                )

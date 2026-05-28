@@ -5,6 +5,8 @@ from rag.models.search_result import StudentSearchResults
 
 
 class RetrievingProcessor(Protocol):
+    WEIGHT: float
+
     def retrieve(
         self, queries: list[UnansweredQuestion], k: int
     ) -> StudentSearchResults: ...
