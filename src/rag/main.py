@@ -16,14 +16,14 @@ def run_app() -> None:
 
 
 def init_logger() -> None:
+    log_level = AppConfig().log_level
     logging.basicConfig(
         filename="rag.log",
         format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-        level=logging.ERROR,
+        level=log_level,
     )
     logging.getLogger("bm25s").setLevel(logging.ERROR)
-    logging.getLogger("rag").setLevel(AppConfig().log_level)
-    print(logging.getLogger("rag").level)
+    logger.info(f"Logger setup with level {log_level}")
 
 
 def error_handler(e: Exception, error_type: str) -> None:
@@ -35,7 +35,7 @@ def error_handler(e: Exception, error_type: str) -> None:
 def main() -> None:
     try:
         init_logger()
-        logger.debug("Starting App...")
+        logger.info("Starting App...")
         run_app()
     except KeyboardInterrupt:
         sys.exit(1)
