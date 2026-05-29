@@ -46,7 +46,7 @@ install:
 
 run:
 	@echo "$(E_OK) Running $(NAME)..."
-	@uv run fly-in $(ARGS)
+	@uv run --env-file=.env.hf $(NAME) $(ARGS)
 
 debug:
 	@echo "$(E_WAIT) Entering debug mode..."
@@ -54,9 +54,7 @@ debug:
 
 test:
 	@echo "$(E_WAIT) Running tests..."
-	@printf "$(C_GREY)";\
-		uv run pytest tests/; \
-		printf "$(C_RESET)"
+	@uv run pytest tests
 	@echo "$(E_OK) All good!!!"
 
 clean:

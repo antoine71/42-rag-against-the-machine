@@ -14,6 +14,8 @@ from rag.config.llm import LLMConfig
 from rag.exceptions import RAGException
 from rag.tui import TUI
 
+ChatMessages = list[list[dict[str, str]]]
+
 
 class LLMChatProcessorError(RAGException):
     pass
@@ -42,13 +44,12 @@ class LLMManager:
                     device_map="auto" if self._device == "cuda" else "cpu",
                 ),
             )
-            self._model = self._model.to(self._device)
         except OSError as e:
             raise LLMChatProcessorError(
                 f"Invalid model name: '{self._config.model}'"
             ) from e
 
-    def answer_queries(self, queries: list[list[dict[str, str]]]) -> list[str]:
+    def answer_queries(self, queries: ChatMessages) -> list[str]:
         with self._tui.progress(
             "Processing queries", len(queries), "query"
         ) as progress:
@@ -58,18 +59,17 @@ class LLMManager:
                 progress.update(len(batch))
             return output
 
-    def _process_batch(self, queries: list[list[dict[str, str]]]) -> list[str]:
-        prompt_tokens = cast(
-            BatchEncoding,
-            self._tokenizer.apply_chat_template(
-                queries,
-                tokenize=True,
-                padding=True,
-                add_generation_prompt=True,
-                enable_thinking=False,
-                return_tensors="pt",
-            ),
+    @torch.inference_mode()
+    def _process_batch(self, queries: ChatMessages) -> list[str]:
+        prompt_tokens = self._tokenizer.apply_chat_template(
+            queries,
+            tokenize=True,
+            padding=True,
+            add_generation_prompt=True,
+            enable_thinking=False,
+            return_tensors="pt",
         )
+        assert isinstance(prompt_tokens, BatchEncoding)
         prompt_tokens = prompt_tokens.to(self._device)
         input_length = prompt_tokens["input_ids"].shape[1]
         if input_length > self._tokenizer.model_max_length:
@@ -78,7 +78,7 @@ class LLMManager:
                 f"{input_length} > {self._tokenizer.model_max_length}"
             )
         generated_ids = self._model.generate(
-            **prompt_tokens, max_new_tokens=256
+            **prompt_tokens, max_new_tokens=self._config.max_new_tokens
         )
         new_tokens = generated_ids[:, input_length:]
         output = self._tokenizer.batch_decode(

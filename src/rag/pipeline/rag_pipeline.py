@@ -2,8 +2,11 @@ import logging
 import uuid
 from pathlib import Path
 
+from pydantic import ValidationError
+
 from rag.config.llm import LLMConfig
 from rag.evaluation.evaluation_processor import EvaluationProcessor
+from rag.exceptions import RAGException
 from rag.indexing.files_repository_scanner import FilesRepositoryScanner
 from rag.indexing.indexing_manager import IndexingManager
 from rag.indexing.indexing_processor_factory import IndexingProcessorFactory
@@ -12,6 +15,15 @@ from rag.indexing.langchain_chunking_processor import (
 )
 from rag.llm.llm_chat_processor import LLMChatProcessor
 from rag.llm.llm_manager import LLMManager
+from rag.models.cli_models import (
+    Answer,
+    AnswerDataset,
+    Evaluate,
+    Index,
+    Search,
+    SearchDataset,
+)
+from rag.models.indexing_method import IndexingMethod
 from rag.models.question import UnansweredQuestion
 from rag.models.search_result import (
     MinimalAnswer,
@@ -37,8 +49,17 @@ class RAGPipeline:
         max_chunk_size: int = 2000,
         repository: str = "data/raw/vllm-0.10.1",
         save_directory: str = "data/processed/",
-        indexing_method: str = "bm25",
+        indexing_method: IndexingMethod = IndexingMethod.BM25,
     ) -> None:
+        try:
+            Index(
+                max_chunk_size=max_chunk_size,
+                repository=Path(repository),
+                save_directory=Path(save_directory),
+                indexing_method=indexing_method,
+            )
+        except ValidationError as e:
+            raise RAGException(f"Command line argument error:\n{e}") from e
         files = FilesRepositoryScanner(repository).list_files()
         self._tui.print(
             f"Found {len(files)} py and md files from '{repository}'."
@@ -63,9 +84,18 @@ class RAGPipeline:
         self,
         query: str,
         index_directory: str = "data/processed",
-        retrieving_method: str = "bm25",
+        retrieving_method: IndexingMethod = IndexingMethod.BM25,
         k: int = 10,
     ) -> None:
+        try:
+            Search(
+                query=query,
+                index_directory=Path(index_directory),
+                retrieving_method=retrieving_method,
+                k=k,
+            )
+        except ValidationError as e:
+            raise RAGException(f"Command line argument error:\n{e}") from e
         retrievers = RetrievingProcessorFactory.create(
             retrieving_method, index_directory, self._tui
         )
@@ -84,9 +114,19 @@ class RAGPipeline:
         ),
         index_directory: str = "data/processed",
         save_directory: str = "data/output/search_results",
-        retrieving_method: str = "bm25",
+        retrieving_method: IndexingMethod = IndexingMethod.BM25,
         k: int = 10,
     ) -> None:
+        try:
+            SearchDataset(
+                dataset_path=Path(dataset_path),
+                index_directory=Path(index_directory),
+                save_directory=Path(save_directory),
+                retrieving_method=retrieving_method,
+                k=k,
+            )
+        except ValidationError as e:
+            raise RAGException(f"Command line argument error:\n{e}") from e
         dataset = self._files_manager.load_dataset(
             dataset_path, "unanswered_questions"
         )
@@ -106,13 +146,18 @@ class RAGPipeline:
         self,
         query: str,
         index_directory: str = "data/processed",
-        retrieving_method: str = "bm25",
+        retrieving_method: IndexingMethod = IndexingMethod.BM25,
         k: int = 10,
     ) -> None:
-        """Answer questions using the RAG model.
-
-        Prints a message indicating that answering is in progress.
-        """
+        try:
+            Answer(
+                query=query,
+                index_directory=Path(index_directory),
+                retrieving_method=retrieving_method,
+                k=k,
+            )
+        except ValidationError as e:
+            raise RAGException(f"Command line argument error:\n{e}") from e
         retrievers = RetrievingProcessorFactory.create(
             retrieving_method, index_directory, self._tui
         )
@@ -143,6 +188,14 @@ class RAGPipeline:
         save_directory: str = "data/output/search_result_and_answer",
         k: int = 10,
     ) -> None:
+        try:
+            AnswerDataset(
+                student_search_result_path=Path(student_search_result_path),
+                save_directory=Path(save_directory),
+                k=k,
+            )
+        except ValidationError as e:
+            raise RAGException(f"Command line argument error:\n{e}") from e
         search_results = self._files_manager.load_search_results(
             student_search_result_path
         )
@@ -177,10 +230,13 @@ class RAGPipeline:
             "datasets_public/public/AnsweredQuestions/dataset_code_public.json"
         ),
     ) -> None:
-        """Evaluate the performance of the RAG pipeline.
-
-        Prints a message indicating that evaluation is in progress.
-        """
+        try:
+            Evaluate(
+                student_answer_path=Path(student_answer_path),
+                dataset_path=Path(dataset_path),
+            )
+        except ValidationError as e:
+            raise RAGException(f"Command line argument error\n{e}") from e
         evaluator = EvaluationProcessor(self._files_manager)
         metrics = evaluator.evaluate(student_answer_path, dataset_path)
         self._tui.print_evaluation_results(

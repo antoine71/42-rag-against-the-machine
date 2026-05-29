@@ -4,6 +4,7 @@ import traceback
 
 import fire
 
+from rag.config.app_config import AppConfig
 from rag.exceptions import RAGException
 from rag.pipeline.rag_pipeline import RAGPipeline
 
@@ -21,6 +22,8 @@ def init_logger() -> None:
         level=logging.ERROR,
     )
     logging.getLogger("bm25s").setLevel(logging.ERROR)
+    logging.getLogger("rag").setLevel(AppConfig().log_level)
+    print(logging.getLogger("rag").level)
 
 
 def error_handler(e: Exception, error_type: str) -> None:
