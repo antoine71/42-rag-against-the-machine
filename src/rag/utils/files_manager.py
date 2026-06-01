@@ -19,11 +19,22 @@ class FilesManagerError(RAGException):
 
 
 class FilesManager:
+    """Utility class to manage files, loading datasets, retrieving chunk texts, and saving results."""
+
     def save_results(
         self,
         results: StudentSearchResults | StudentSearchResultsAndAnswer,
         file_path: str,
     ) -> None:
+        """Saves search or answer results to a JSON file.
+
+        Args:
+            results: The StudentSearchResults or StudentSearchResultsAndAnswer object to save.
+            file_path: The file path where the results should be saved.
+
+        Raises:
+            FilesManagerError: If writing to the file fails.
+        """
         file_path_obj = Path(file_path)
         try:
             file_path_obj.parent.mkdir(parents=True, exist_ok=True)
@@ -57,6 +68,18 @@ class FilesManager:
         dataset_path: str,
         dataset_type: Literal["answered_questions", "unanswered_questions"],
     ) -> RagDataset[AnsweredQuestion] | RagDataset[UnansweredQuestion]:
+        """Loads and parses a RAG question dataset from a JSON file.
+
+        Args:
+            dataset_path: The path of the JSON dataset file.
+            dataset_type: The type of dataset ('answered_questions' or 'unanswered_questions').
+
+        Returns:
+            A RagDataset populated with AnsweredQuestion or UnansweredQuestion objects.
+
+        Raises:
+            FilesManagerError: If loading, parsing, or Pydantic validation fails.
+        """
         try:
             file_content_obj = json.loads(Path(dataset_path).read_text())
             if dataset_type == "answered_questions":
@@ -73,6 +96,17 @@ class FilesManager:
             ) from e
 
     def load_chunk(self, source: MinimalSource) -> str:
+        """Reads and extracts a specific text chunk from a file using character indexes.
+
+        Args:
+            source: A MinimalSource object containing the file path and character bounds.
+
+        Returns:
+            The extracted chunk text content.
+
+        Raises:
+            FilesManagerError: If reading the file or extracting the character range fails.
+        """
         try:
             content = Path(source.file_path).read_text()
         except OSError as e:
@@ -89,6 +123,17 @@ class FilesManager:
             ) from e
 
     def load_search_results(self, file: str) -> StudentSearchResults:
+        """Loads and parses student search results from a JSON file.
+
+        Args:
+            file: Path of the JSON file containing the search results.
+
+        Returns:
+            A StudentSearchResults object.
+
+        Raises:
+            FilesManagerError: If loading, parsing, or Pydantic validation fails.
+        """
         try:
             content = Path(file).read_text()
         except OSError as e:

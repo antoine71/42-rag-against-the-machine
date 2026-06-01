@@ -6,9 +6,19 @@ from rag.utils.reciprocal_rank_fusion import reciprocal_rank_fusion
 
 
 class RetrievingManager:
+    """Manager class that coordinates retrieval from single or multiple retrieving processors.
+
+    Uses Reciprocal Rank Fusion (RRF) when combining multiple retrieving processors.
+    """
+
     def __init__(
         self, retrieving_processors: list[RetrievingProcessor]
     ) -> None:
+        """Initializes the RetrievingManager.
+
+        Args:
+            retrieving_processors: A list of RetrievingProcessor instances to use.
+        """
         self._retrieving_processors = retrieving_processors
         self._rrf_config = RRFConfig()
 
@@ -17,6 +27,15 @@ class RetrievingManager:
         queries: list[UnansweredQuestion],
         k: int,
     ) -> StudentSearchResults:
+        """Processes queries using the configured retrieving processors.
+
+        Args:
+            queries: A list of UnansweredQuestion objects containing search queries.
+            k: The number of top results to retrieve.
+
+        Returns:
+            A StudentSearchResults object containing combined, ranked retrieved sources.
+        """
         if len(self._retrieving_processors) == 1:
             return self._simple_retrieving(queries, k)
         return self._multiple_retrieving(queries, k)
@@ -26,6 +45,15 @@ class RetrievingManager:
         queries: list[UnansweredQuestion],
         k: int,
     ) -> StudentSearchResults:
+        """Retrieves and reranks results from multiple retrieving processors using RRF.
+
+        Args:
+            queries: A list of UnansweredQuestion objects containing search queries.
+            k: The number of top results to retrieve.
+
+        Returns:
+            A reranked StudentSearchResults object.
+        """
         search_results = [
             processor.retrieve(queries, k * self._rrf_config.k_factor)
             for processor in self._retrieving_processors
@@ -41,6 +69,15 @@ class RetrievingManager:
     def _simple_retrieving(
         self, queries: list[UnansweredQuestion], k: int
     ) -> StudentSearchResults:
+        """Retrieves results using the single configured retrieving processor.
+
+        Args:
+            queries: A list of UnansweredQuestion objects containing search queries.
+            k: The number of top results to retrieve.
+
+        Returns:
+            A StudentSearchResults object.
+        """
         search_results = self._retrieving_processors[0].retrieve(queries, k)
         return search_results
 
@@ -51,6 +88,17 @@ class RetrievingManager:
         weights: list[float],
         k: int,
     ) -> StudentSearchResults:
+        """Fuses and reranks multiple search result sets using RRF.
+
+        Args:
+            queries: A list of UnansweredQuestion objects containing search queries.
+            search_results: A list of StudentSearchResults, one set per retrieving processor.
+            weights: A list of weight floats associated with each retrieving processor.
+            k: The number of top results to keep after reranking.
+
+        Returns:
+            A combined and reranked StudentSearchResults object.
+        """
         reranked_search_results: list[MinimalSearchResults] = []
         for query in queries:
             sources_ranks = [

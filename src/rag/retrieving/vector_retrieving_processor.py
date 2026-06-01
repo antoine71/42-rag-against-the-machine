@@ -11,9 +11,17 @@ from rag.tui import TUI
 
 
 class VectorRetrievingProcessor(RetrievingProcessor):
+    """Retrieving processor using a vector database for semantic search."""
+
     WEIGHT = 1.0
 
     def __init__(self, index_directory: str, tui: TUI) -> None:
+        """Initializes the VectorRetrievingProcessor.
+
+        Args:
+            index_directory: Path to ChromaDB database files.
+            tui: A TUI instance to handle progress output.
+        """
         self._config = EmbeddingConfig()
         self._embedder = SentenceTransformer(self._config.model)
         self._store = chromadb.PersistentClient(index_directory)
@@ -22,6 +30,15 @@ class VectorRetrievingProcessor(RetrievingProcessor):
     def retrieve(
         self, queries: list[UnansweredQuestion], k: int
     ) -> StudentSearchResults:
+        """Performs batch semantic search on queries using ChromaDB HNSW.
+
+        Args:
+            queries: A list of queries to search.
+            k: The number of top results to retrieve.
+
+        Returns:
+            A StudentSearchResults object.
+        """
         collection = self._store.get_collection(self._config.collection)
         corpus = collection.get(
             include=["embeddings", "metadatas", "documents"]

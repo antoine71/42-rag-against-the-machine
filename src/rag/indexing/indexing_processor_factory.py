@@ -1,5 +1,3 @@
-from collections.abc import Callable
-
 from rag.config.bm25 import BM25Configuration
 from rag.config.embedding import EmbeddingConfig
 from rag.exceptions import RAGException
@@ -13,6 +11,8 @@ from rag.tui import TUI
 
 
 class IndexingProcessorFactory:
+    """Factory class to create indexing processor instances."""
+
     @classmethod
     def create(
         cls,
@@ -20,12 +20,25 @@ class IndexingProcessorFactory:
         chunks: list[Chunk],
         tui: TUI,
     ) -> list[IndexingProcessor]:
-        bm25_factory: Callable[[], BM25IndexingProcessor] = lambda: (
-            BM25IndexingProcessor(chunks, tui, BM25Configuration())
-        )
-        vector_factory: Callable[[], VectorEmbeddingProcessor] = lambda: (
-            VectorEmbeddingProcessor(chunks, tui, EmbeddingConfig())
-        )
+        """Creates a list of IndexingProcessor instances.
+
+        Args:
+            indexing_method: The indexing strategy ('bm25', 'vector', 'hybrid').
+            chunks: A list of Chunk models to index.
+            tui: A TUI instance to handle progress output.
+
+        Returns:
+            A list of IndexingProcessor instances.
+
+        Raises:
+            RAGException: If an invalid indexing method is specified.
+        """
+        def bm25_factory() -> BM25IndexingProcessor:
+            return BM25IndexingProcessor(chunks, tui, BM25Configuration())
+
+        def vector_factory() -> VectorEmbeddingProcessor:
+            return VectorEmbeddingProcessor(chunks, tui, EmbeddingConfig())
+
         match indexing_method:
             case "bm25":
                 return [bm25_factory()]

@@ -1,5 +1,3 @@
-from collections.abc import Callable
-
 from rag.exceptions import RAGException
 from rag.retrieving.bm25_retrieving_processor import BM25RetrievingProcessor
 from rag.retrieving.retrieving_processor import RetrievingProcessor
@@ -10,16 +8,32 @@ from rag.tui import TUI
 
 
 class RetrievingProcessorFactory:
+    """Factory class to create retrieving processor instances."""
+
     @classmethod
     def create(
         cls, retrieving_method: str, index_directory: str, tui: TUI
     ) -> list[RetrievingProcessor]:
-        bm25_factory: Callable[[], BM25RetrievingProcessor] = lambda: (
-            BM25RetrievingProcessor(index_directory)
-        )
-        vector_factory: Callable[[], VectorRetrievingProcessor] = lambda: (
-            VectorRetrievingProcessor(index_directory, tui)
-        )
+        """Creates RetrievingProcessor instances based on method name.
+
+        Args:
+            retrieving_method: The retrieval strategy to use
+                ('bm25', 'vector', or 'hybrid').
+            index_directory: Path where index and DB files are saved.
+            tui: A TUI instance to handle progress output.
+
+        Returns:
+            A list of RetrievingProcessor instances.
+
+        Raises:
+            RAGException: If an invalid retrieving method is specified.
+        """
+        def bm25_factory() -> BM25RetrievingProcessor:
+            return BM25RetrievingProcessor(index_directory)
+
+        def vector_factory() -> VectorRetrievingProcessor:
+            return VectorRetrievingProcessor(index_directory, tui)
+
         match retrieving_method:
             case "bm25":
                 return [bm25_factory()]

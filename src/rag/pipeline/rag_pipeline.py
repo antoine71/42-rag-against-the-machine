@@ -38,7 +38,10 @@ logger = logging.getLogger(__name__)
 
 
 class RAGPipeline:
+    """The central RAG pipeline CLI entry point exposing all commands using Python Fire."""
+
     def __init__(self) -> None:
+        """Initializes the RAGPipeline with default helper components."""
         self._files_manager = FilesManager()
         self._tui = TUI()
 
@@ -50,6 +53,14 @@ class RAGPipeline:
         save_directory: str = "data/processed/",
         indexing_method: IndexingMethod = IndexingMethod.BM25,
     ) -> None:
+        """Scans the repository, chunks files, and builds a searchable index using the chosen method.
+
+        Args:
+            max_chunk_size: Maximum character length of each chunk.
+            repository: Path to the directory containing files to index.
+            save_directory: Directory where the generated indices should be saved.
+            indexing_method: The indexing strategy to use ('bm25', 'vector', or 'hybrid').
+        """
         files = FilesRepositoryScanner(repository).list_files()
         self._tui.print(
             f"Found {len(files)} py and md files from '{repository}'."
@@ -75,6 +86,14 @@ class RAGPipeline:
         retrieving_method: IndexingMethod = IndexingMethod.BM25,
         k: int = 10,
     ) -> None:
+        """Searches the knowledge base index for a single query string and prints top-k results in JSON.
+
+        Args:
+            query: The search query string.
+            index_directory: The directory containing index files.
+            retrieving_method: The retrieval strategy to use ('bm25', 'vector', or 'hybrid').
+            k: Number of top results to retrieve.
+        """
         retrievers = RetrievingProcessorFactory.create(
             retrieving_method, index_directory, self._tui
         )
@@ -97,6 +116,15 @@ class RAGPipeline:
         retrieving_method: IndexingMethod = IndexingMethod.BM25,
         k: int = 10,
     ) -> None:
+        """Processes multiple queries from a JSON dataset and saves search results to a file.
+
+        Args:
+            dataset_path: Path to the JSON dataset containing unanswered questions.
+            index_directory: The directory containing index files.
+            save_directory: The directory where search results should be saved.
+            retrieving_method: The retrieval strategy to use ('bm25', 'vector', or 'hybrid').
+            k: Number of top results to retrieve per query.
+        """
         dataset = self._files_manager.load_dataset(
             dataset_path, "unanswered_questions"
         )
@@ -120,6 +148,14 @@ class RAGPipeline:
         retrieving_method: IndexingMethod = IndexingMethod.BM25,
         k: int = 10,
     ) -> None:
+        """Retrieves context and generates a natural language answer for a single query.
+
+        Args:
+            query: The user query string.
+            index_directory: The directory containing index files.
+            retrieving_method: The retrieval strategy to use ('bm25', 'vector', or 'hybrid').
+            k: Number of top results to retrieve as context.
+        """
         retrievers = RetrievingProcessorFactory.create(
             retrieving_method, index_directory, self._tui
         )
@@ -151,6 +187,13 @@ class RAGPipeline:
         save_directory: str = "data/output/search_result_and_answer",
         k: int = 10,
     ) -> None:
+        """Generates natural language answers for a pre-computed search dataset file and saves them.
+
+        Args:
+            student_search_result_path: Path to the search results JSON file.
+            save_directory: The directory where final answers should be saved.
+            k: Number of context sources to include.
+        """
         search_results = self._files_manager.load_search_results(
             student_search_result_path
         )
@@ -186,6 +229,12 @@ class RAGPipeline:
             "datasets_public/public/AnsweredQuestions/dataset_code_public.json"
         ),
     ) -> None:
+        """Evaluates student search results against the answered questions ground truth.
+
+        Args:
+            student_answer_path: Path to the student search results JSON file.
+            dataset_path: Path to the ground truth answered questions dataset JSON file.
+        """
         evaluator = EvaluationProcessor(self._files_manager)
         metrics = evaluator.evaluate(student_answer_path, dataset_path)
         self._tui.print_evaluation_results(

@@ -12,9 +12,18 @@ logger = logging.getLogger(__name__)
 
 
 class BM25IndexingProcessor(IndexingProcessor):
+    """An indexing processor that creates and saves a BM25 sparse index."""
+
     def __init__(
         self, chunks: list[Chunk], tui: TUI, config: BaseSettings
     ) -> None:
+        """Initializes the BM25IndexingProcessor.
+
+        Args:
+            chunks: A list of Chunk models to be indexed.
+            tui: A TUI instance to handle user interface / progress output.
+            config: A configuration object containing BM25 parameters.
+        """
         super().__init__(chunks, tui, config)
         self._config: BM25Configuration
 
@@ -22,6 +31,12 @@ class BM25IndexingProcessor(IndexingProcessor):
         self,
         save_directory: str,
     ) -> None:
+        """Indexes the text chunks using BM25 and saves the index to disk.
+
+        Args:
+            save_directory: The directory path where the BM25 index files
+                should be saved.
+        """
 
         texts = [chunk.text for chunk in self._chunks]
         corpus = bm25s.tokenize(texts)
