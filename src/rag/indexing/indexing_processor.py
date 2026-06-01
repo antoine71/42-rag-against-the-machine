@@ -25,9 +25,11 @@ class IndexingProcessor(ABC):
 
     @abstractmethod
     def index_corpus(self, save_directory: str) -> None:
-        """Abstract method to index the corpus and save it to the specified directory.
+        """Abstract method to index the corpus and save it to the specified
+        directory.
 
         Args:
-            save_directory: The directory path where index data should be saved.
+            save_directory: The directory path where index data should be
+                saved.
         """
         ...

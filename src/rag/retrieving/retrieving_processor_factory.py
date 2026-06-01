@@ -29,9 +29,11 @@ class RetrievingProcessorFactory:
             RAGException: If an invalid retrieving method is specified.
         """
         def bm25_factory() -> BM25RetrievingProcessor:
+            """Creates a BM25 retrieving processor instance."""
             return BM25RetrievingProcessor(index_directory)
 
         def vector_factory() -> VectorRetrievingProcessor:
+            """Creates a vector retrieving processor instance."""
             return VectorRetrievingProcessor(index_directory, tui)
 
         match retrieving_method:

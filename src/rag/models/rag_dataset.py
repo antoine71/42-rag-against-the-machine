@@ -8,4 +8,6 @@ QuestionT = TypeVar("QuestionT", AnsweredQuestion, UnansweredQuestion)
 
 
 class RagDataset(BaseModel, Generic[QuestionT]):
+    """Generic dataset container for answered or unanswered RAG questions."""
+
     rag_questions: list[QuestionT]

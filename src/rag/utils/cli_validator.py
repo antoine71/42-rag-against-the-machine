@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 def args_to_kwargs(
     func: Callable[[Any], Any], *args: tuple[Any]
 ) -> dict[str, Any]:
-    """Maps CLI positional arguments to keyword arguments based on function signature.
+    """Map CLI positional arguments to keyword arguments using signature.
 
     Args:
         func: The target function to analyze.
@@ -47,8 +47,11 @@ def validate_with(model: type[BaseModel]) -> Callable[[Any], Any]:
     """
 
     def decorator(func: Callable[[Any], Any]) -> Callable[[Any], Any]:
+        """Wraps the target function with argument validation."""
         @functools.wraps(func)
         def wrapper(*args: Any, **kwargs: Any) -> Any:
+            """Validate CLI positional arguments against the Pydantic model.
+            """
             try:
                 params = model(**args_to_kwargs(func, *args))
                 logger.info(

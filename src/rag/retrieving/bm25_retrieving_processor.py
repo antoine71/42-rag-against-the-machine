@@ -9,7 +9,9 @@ from rag.retrieving.retrieving_processor import RetrievingProcessor
 
 
 class BM25RetrievingProcessor(RetrievingProcessor):
-    """Retrieving processor that uses a saved BM25 sparse index for keyword search retrieval."""
+    """Retrieving processor that uses a saved BM25 sparse index for
+    keyword search retrieval.
+    """
 
     WEIGHT = 1.3
 
@@ -25,10 +27,11 @@ class BM25RetrievingProcessor(RetrievingProcessor):
     def retrieve(
         self, queries: list[UnansweredQuestion], k: int
     ) -> StudentSearchResults:
-        """Performs BM25 keyword search on the queries to retrieve top-k sources.
+        """Perform BM25 keyword search and retrieve top-k sources.
 
         Args:
-            queries: A list of UnansweredQuestion objects containing search queries.
+            queries: A list of UnansweredQuestion objects containing search
+                queries.
             k: The number of top results to retrieve.
 
         Returns:

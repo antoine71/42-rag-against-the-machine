@@ -8,15 +8,18 @@ def reciprocal_rank_fusion(
     weights: list[float] | None = None,
     k: int = 60,
 ) -> list[MinimalSource]:
-    """Applies Reciprocal Rank Fusion (RRF) to combine and rerank multiple search rankings.
+    """Apply Reciprocal Rank Fusion (RRF) to combine and rerank rankings.
 
     Args:
-        rankings: A list of rankings, where each ranking is a list of MinimalSource objects.
-        weights: A list of weight floats associated with each ranking, default is equal weight.
+        rankings: A list of rankings, where each ranking is a list of
+            MinimalSource objects.
+        weights: A list of weight floats associated with each ranking. If
+            omitted, equal weights are used.
         k: The constant parameter in the RRF formula (default is 60).
 
     Returns:
-        A sorted list of unique MinimalSource objects ranked by their fused RRF score.
+        A sorted list of unique MinimalSource objects ranked by their fused
+            RRF score.
     """
     if weights is None:
         weights = [1.0] * len(rankings)

@@ -6,9 +6,11 @@ from rag.utils.reciprocal_rank_fusion import reciprocal_rank_fusion
 
 
 class RetrievingManager:
-    """Manager class that coordinates retrieval from single or multiple retrieving processors.
+    """Manager class that coordinates retrieval from single or multiple
+    retrieving processors.
 
-    Uses Reciprocal Rank Fusion (RRF) when combining multiple retrieving processors.
+    Uses Reciprocal Rank Fusion (RRF) when combining multiple retrieving
+    processors.
     """
 
     def __init__(
@@ -17,7 +19,8 @@ class RetrievingManager:
         """Initializes the RetrievingManager.
 
         Args:
-            retrieving_processors: A list of RetrievingProcessor instances to use.
+            retrieving_processors: A list of RetrievingProcessor instances to
+                use.
         """
         self._retrieving_processors = retrieving_processors
         self._rrf_config = RRFConfig()
@@ -30,11 +33,11 @@ class RetrievingManager:
         """Processes queries using the configured retrieving processors.
 
         Args:
-            queries: A list of UnansweredQuestion objects containing search queries.
+            queries: List of UnansweredQuestion objects.
             k: The number of top results to retrieve.
 
         Returns:
-            A StudentSearchResults object containing combined, ranked retrieved sources.
+            A StudentSearchResults containing combined, ranked sources.
         """
         if len(self._retrieving_processors) == 1:
             return self._simple_retrieving(queries, k)
@@ -45,10 +48,11 @@ class RetrievingManager:
         queries: list[UnansweredQuestion],
         k: int,
     ) -> StudentSearchResults:
-        """Retrieves and reranks results from multiple retrieving processors using RRF.
+        """Retrieves and reranks results from multiple retrieving processors
+        using RRF.
 
         Args:
-            queries: A list of UnansweredQuestion objects containing search queries.
+            queries: List of UnansweredQuestion objects.
             k: The number of top results to retrieve.
 
         Returns:
@@ -72,7 +76,7 @@ class RetrievingManager:
         """Retrieves results using the single configured retrieving processor.
 
         Args:
-            queries: A list of UnansweredQuestion objects containing search queries.
+            queries: List of UnansweredQuestion objects.
             k: The number of top results to retrieve.
 
         Returns:
@@ -91,9 +95,11 @@ class RetrievingManager:
         """Fuses and reranks multiple search result sets using RRF.
 
         Args:
-            queries: A list of UnansweredQuestion objects containing search queries.
-            search_results: A list of StudentSearchResults, one set per retrieving processor.
-            weights: A list of weight floats associated with each retrieving processor.
+            queries: List of UnansweredQuestion objects.
+            search_results: A list of StudentSearchResults, one set per
+                retrieving processor.
+            weights: A list of weight floats associated with each retrieving
+                processor.
             k: The number of top results to keep after reranking.
 
         Returns:

@@ -38,7 +38,10 @@ logger = logging.getLogger(__name__)
 
 
 class RAGPipeline:
-    """The central RAG pipeline CLI entry point exposing all commands using Python Fire."""
+    """The central RAG pipeline CLI entry point.
+
+    Exposes all command entry points using Python Fire.
+    """
 
     def __init__(self) -> None:
         """Initializes the RAGPipeline with default helper components."""
@@ -53,13 +56,15 @@ class RAGPipeline:
         save_directory: str = "data/processed/",
         indexing_method: IndexingMethod = IndexingMethod.BM25,
     ) -> None:
-        """Scans the repository, chunks files, and builds a searchable index using the chosen method.
+        """Scans the repository, chunks files, and builds a searchable index.
 
         Args:
             max_chunk_size: Maximum character length of each chunk.
             repository: Path to the directory containing files to index.
-            save_directory: Directory where the generated indices should be saved.
-            indexing_method: The indexing strategy to use ('bm25', 'vector', or 'hybrid').
+            save_directory: Directory where the generated indices should be
+                saved.
+            indexing_method: The indexing strategy to use (
+                'bm25', 'vector', or 'hybrid').
         """
         files = FilesRepositoryScanner(repository).list_files()
         self._tui.print(
@@ -86,12 +91,14 @@ class RAGPipeline:
         retrieving_method: IndexingMethod = IndexingMethod.BM25,
         k: int = 10,
     ) -> None:
-        """Searches the knowledge base index for a single query string and prints top-k results in JSON.
+        """Searches the knowledge base for a single query and prints top
+        results.
 
         Args:
             query: The search query string.
             index_directory: The directory containing index files.
-            retrieving_method: The retrieval strategy to use ('bm25', 'vector', or 'hybrid').
+            retrieving_method: The retrieval strategy to use (
+                'bm25', 'vector', or 'hybrid').
             k: Number of top results to retrieve.
         """
         retrievers = RetrievingProcessorFactory.create(
@@ -116,13 +123,16 @@ class RAGPipeline:
         retrieving_method: IndexingMethod = IndexingMethod.BM25,
         k: int = 10,
     ) -> None:
-        """Processes multiple queries from a JSON dataset and saves search results to a file.
+        """Processes queries from a JSON dataset and saves search results.
 
         Args:
-            dataset_path: Path to the JSON dataset containing unanswered questions.
+            dataset_path: Path to the JSON dataset containing unanswered
+                questions.
             index_directory: The directory containing index files.
-            save_directory: The directory where search results should be saved.
-            retrieving_method: The retrieval strategy to use ('bm25', 'vector', or 'hybrid').
+            save_directory: The directory where search results should be
+                saved.
+            retrieving_method: The retrieval strategy to use (
+                'bm25', 'vector', or 'hybrid').
             k: Number of top results to retrieve per query.
         """
         dataset = self._files_manager.load_dataset(
@@ -148,12 +158,13 @@ class RAGPipeline:
         retrieving_method: IndexingMethod = IndexingMethod.BM25,
         k: int = 10,
     ) -> None:
-        """Retrieves context and generates a natural language answer for a single query.
+        """Retrieves context and generates a natural answer for a single query.
 
         Args:
             query: The user query string.
             index_directory: The directory containing index files.
-            retrieving_method: The retrieval strategy to use ('bm25', 'vector', or 'hybrid').
+            retrieving_method: The retrieval strategy to use (
+                'bm25', 'vector', or 'hybrid').
             k: Number of top results to retrieve as context.
         """
         retrievers = RetrievingProcessorFactory.create(
@@ -187,7 +198,7 @@ class RAGPipeline:
         save_directory: str = "data/output/search_result_and_answer",
         k: int = 10,
     ) -> None:
-        """Generates natural language answers for a pre-computed search dataset file and saves them.
+        """Generates answers for a search dataset file and saves them.
 
         Args:
             student_search_result_path: Path to the search results JSON file.
@@ -229,11 +240,13 @@ class RAGPipeline:
             "datasets_public/public/AnsweredQuestions/dataset_code_public.json"
         ),
     ) -> None:
-        """Evaluates student search results against the answered questions ground truth.
+        """Evaluate student search results against the answered questions
+        ground truth.
 
         Args:
             student_answer_path: Path to the student search results JSON file.
-            dataset_path: Path to the ground truth answered questions dataset JSON file.
+            dataset_path: Path to the ground truth answered questions dataset
+                JSON file.
         """
         evaluator = EvaluationProcessor(self._files_manager)
         metrics = evaluator.evaluate(student_answer_path, dataset_path)

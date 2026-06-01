@@ -22,10 +22,13 @@ class LLMChatProcessorError(RAGException):
 
 
 class LLMManager:
-    """Manager class responsible for loading the LLM model and generating query responses in batches."""
+    """Manager class responsible for loading the LLM model and generating
+    query responses in batches.
+    """
 
     def __init__(self, tui: TUI, config: LLMConfig) -> None:
-        """Initializes the LLMManager, loading the causal language model and tokenizer from HuggingFace.
+        """Initializes the LLMManager, loading the causal language model and
+        tokenizer.
 
         Args:
             tui: A TUI instance to handle user interface / progress output.
@@ -61,7 +64,8 @@ class LLMManager:
             ) from e
 
     def answer_queries(self, queries: ChatMessages) -> list[str]:
-        """Generates natural language answers for multiple formatted chat queries in batches.
+        """Generates natural language answers for multiple formatted chat
+        queries.
 
         Args:
             queries: A list of formatted chat conversation messages.
@@ -80,7 +84,8 @@ class LLMManager:
 
     @torch.inference_mode()
     def _process_batch(self, queries: ChatMessages) -> list[str]:
-        """Helper method that generates answers for a single batch of queries under torch inference mode.
+        """Generates answers for a single batch of queries under inference
+        mode.
 
         Args:
             queries: A list of formatted chat messages for a single batch.
@@ -89,7 +94,8 @@ class LLMManager:
             A list of decoded answer strings from the LLM.
 
         Raises:
-            LLMChatProcessorError: If the token length of the query batch exceeds the model's capacity limit.
+            LLMChatProcessorError: If the token length of the query batch
+                exceeds the model's capacity limit.
         """
         prompt_tokens = self._tokenizer.apply_chat_template(
             queries,

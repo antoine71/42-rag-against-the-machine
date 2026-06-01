@@ -15,10 +15,12 @@ class RetrievingProcessor(Protocol):
         """Retrieves top-k most relevant sources for the given queries.
 
         Args:
-            queries: A list of UnansweredQuestion objects containing the search queries.
+            queries: A list of UnansweredQuestion objects containing the
+                search queries.
             k: The number of top results to retrieve.
 
         Returns:
-            A StudentSearchResults object containing retrieved sources for each query.
+            A StudentSearchResults object containing retrieved sources for each
+                query.
         """
         ...

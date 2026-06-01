@@ -9,7 +9,9 @@ from rag.tui import TUI
 
 
 class VectorEmbeddingProcessor(IndexingProcessor):
-    """An indexing processor that creates and saves vector embeddings to ChromaDB."""
+    """An indexing processor that creates and saves vector embeddings to
+    ChromaDB.
+    """
 
     def __init__(
         self, chunks: list[Chunk], tui: TUI, config: EmbeddingConfig
@@ -19,7 +21,8 @@ class VectorEmbeddingProcessor(IndexingProcessor):
         Args:
             chunks: A list of Chunk models to be embedded.
             tui: A TUI instance to handle user interface / progress output.
-            config: An EmbeddingConfig object containing embedding configuration.
+            config: An EmbeddingConfig object containing embedding
+                configuration.
         """
         super().__init__(chunks, tui, config)
         self._config: EmbeddingConfig
@@ -28,10 +31,11 @@ class VectorEmbeddingProcessor(IndexingProcessor):
         self._metadatas = [chunk.metadata for chunk in self._chunks]
 
     def index_corpus(self, save_directory: str) -> None:
-        """Encodes text chunks in batch and saves the resulting embeddings to a ChromaDB collection.
+        """Encodes text chunks in batch and saves the resulting embeddings.
 
         Args:
-            save_directory: The directory path where ChromaDB database files should be stored.
+            save_directory: The directory path where ChromaDB database files
+                should be stored.
         """
         corpus_embeddings = self._embedder.encode_document(
             self._texts, show_progress_bar=True

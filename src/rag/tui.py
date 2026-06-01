@@ -9,7 +9,9 @@ from rag.evaluation.evaluation_processor import RecallEvaluation
 
 
 class TUI:
-    """Terminal User Interface manager for printing outputs and showing progress bars."""
+    """Terminal User Interface manager for printing outputs and showing
+    progress bars.
+    """
 
     def print_evaluation_results(
         self,
@@ -22,7 +24,8 @@ class TUI:
         Args:
             evaluation: The RecallEvaluation containing evaluation metrics.
             dataset: Path or name of the dataset evaluated.
-            student_search_results: Path or name of the search results evaluated.
+            student_search_results: Path or name of the search results
+                evaluated.
         """
         self.print(
             dedent(f"""\

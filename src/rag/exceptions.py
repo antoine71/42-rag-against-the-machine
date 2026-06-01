@@ -1,2 +1,2 @@
 class RAGException(Exception):
-    pass
+    """Base exception for RAG-specific application errors."""

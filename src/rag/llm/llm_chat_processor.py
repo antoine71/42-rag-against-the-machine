@@ -32,10 +32,12 @@ class LLMChatProcessor:
         )
 
     def answer_queries(self, input: list[MinimalSearchResults]) -> list[str]:
-        """Formats the search results into LLM prompts and generates query responses.
+        """Formats the search results into LLM prompts and generates query
+        responses.
 
         Args:
-            input: A list of MinimalSearchResults containing queries and retrieved sources.
+            input: A list of MinimalSearchResults containing queries and
+                retrieved sources.
 
         Returns:
             A list of natural language answer strings.

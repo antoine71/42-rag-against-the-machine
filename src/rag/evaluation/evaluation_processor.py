@@ -37,13 +37,16 @@ class RecallEvaluation:
 
 
 class EvaluationProcessor:
-    """Processor for evaluating RAG retrieval performance using recall@k metrics."""
+    """Processor for evaluating RAG retrieval performance using
+    recall@k metrics.
+    """
 
     def __init__(self, files_manager: FilesManager) -> None:
         """Initializes the EvaluationProcessor.
 
         Args:
-            files_manager: The files manager utility to load dataset and answers.
+            files_manager: The files manager utility to load dataset and
+                answers.
         """
         self._files_manager = files_manager
 
@@ -217,7 +220,8 @@ class EvaluationProcessor:
         student_answers: StudentSearchResults,
         dataset: RagDataset[AnsweredQuestion],
     ) -> bool:
-        """Validates that the student search results match the dataset structure.
+        """Validates that the student search results match the dataset
+        structure.
 
         Args:
             student_answers: The retrieved student search results.

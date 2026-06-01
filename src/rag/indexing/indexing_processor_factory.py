@@ -23,7 +23,8 @@ class IndexingProcessorFactory:
         """Creates a list of IndexingProcessor instances.
 
         Args:
-            indexing_method: The indexing strategy ('bm25', 'vector', 'hybrid').
+            indexing_method: The indexing strategy ('bm25', 'vector',
+                'hybrid').
             chunks: A list of Chunk models to index.
             tui: A TUI instance to handle progress output.
 
@@ -34,9 +35,11 @@ class IndexingProcessorFactory:
             RAGException: If an invalid indexing method is specified.
         """
         def bm25_factory() -> BM25IndexingProcessor:
+            """Creates a BM25 indexing processor instance."""
             return BM25IndexingProcessor(chunks, tui, BM25Configuration())
 
         def vector_factory() -> VectorEmbeddingProcessor:
+            """Creates a vector embedding indexing processor instance."""
             return VectorEmbeddingProcessor(chunks, tui, EmbeddingConfig())
 
         match indexing_method:

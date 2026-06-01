@@ -16,7 +16,8 @@ logger = logging.getLogger(__name__)
 
 
 class LangChainChunkingProcessor:
-    """Processor that splits code and markdown documents into logical chunks using LangChain splitters."""
+    """Processor that splits code and markdown documents into logical chunks
+    using LangChain splitters."""
 
     def __init__(
         self,
@@ -65,7 +66,8 @@ class LangChainChunkingProcessor:
         """Splits files of a specific type using the provided text splitter.
 
         Args:
-            doc_type: The string representing file type (e.g., 'python' or 'markdown').
+            doc_type: The string representing file type (e.g., 'python' or
+                'markdown').
             splitter: The LangChain TextSplitter instance to use.
 
         Returns:
@@ -80,10 +82,12 @@ class LangChainChunkingProcessor:
         return split
 
     def split(self) -> list[Chunk]:
-        """Splits all valid files into Python and Markdown chunks and wraps them in Chunk models.
+        """Splits all valid files into Python and Markdown chunks and wraps
+        them in Chunk models.
 
         Returns:
-            A list of parsed Chunk objects with verified starting character indices.
+            A list of parsed Chunk objects with verified starting character
+                indices.
         """
         chunks = list(
             itertools.chain(

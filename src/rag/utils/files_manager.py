@@ -19,7 +19,9 @@ class FilesManagerError(RAGException):
 
 
 class FilesManager:
-    """Utility class to manage files, loading datasets, retrieving chunk texts, and saving results."""
+    """Utility class to manage files, load datasets, retrieve chunks, and
+    save results.
+    """
 
     def save_results(
         self,
@@ -29,7 +31,8 @@ class FilesManager:
         """Saves search or answer results to a JSON file.
 
         Args:
-            results: The StudentSearchResults or StudentSearchResultsAndAnswer object to save.
+            results: The StudentSearchResults or StudentSearchResultsAndAnswer
+                object to save.
             file_path: The file path where the results should be saved.
 
         Raises:
@@ -54,31 +57,36 @@ class FilesManager:
         self,
         dataset_path: str,
         dataset_type: Literal["answered_questions"],
-    ) -> RagDataset[AnsweredQuestion]: ...
+    ) -> RagDataset[AnsweredQuestion]:
+        """Overload for loading answered question datasets."""
 
     @overload
     def load_dataset(
         self,
         dataset_path: str,
         dataset_type: Literal["unanswered_questions"],
-    ) -> RagDataset[UnansweredQuestion]: ...
+    ) -> RagDataset[UnansweredQuestion]:
+        """Overload for loading unanswered question datasets."""
 
     def load_dataset(
         self,
         dataset_path: str,
         dataset_type: Literal["answered_questions", "unanswered_questions"],
     ) -> RagDataset[AnsweredQuestion] | RagDataset[UnansweredQuestion]:
-        """Loads and parses a RAG question dataset from a JSON file.
+        """Load and parse a RAG question dataset from a JSON file.
 
         Args:
             dataset_path: The path of the JSON dataset file.
-            dataset_type: The type of dataset ('answered_questions' or 'unanswered_questions').
+            dataset_type: The type of dataset ('answered_questions' or
+                'unanswered_questions').
 
         Returns:
-            A RagDataset populated with AnsweredQuestion or UnansweredQuestion objects.
+            A RagDataset populated with AnsweredQuestion or UnansweredQuestion
+                objects.
 
         Raises:
-            FilesManagerError: If loading, parsing, or Pydantic validation fails.
+            FilesManagerError: If loading, parsing, or Pydantic validation
+                fails.
         """
         try:
             file_content_obj = json.loads(Path(dataset_path).read_text())
@@ -96,16 +104,18 @@ class FilesManager:
             ) from e
 
     def load_chunk(self, source: MinimalSource) -> str:
-        """Reads and extracts a specific text chunk from a file using character indexes.
+        """Read and extract a specific text chunk from a file.
 
         Args:
-            source: A MinimalSource object containing the file path and character bounds.
+            source: A MinimalSource object containing the file path and
+                character bounds.
 
         Returns:
             The extracted chunk text content.
 
         Raises:
-            FilesManagerError: If reading the file or extracting the character range fails.
+            FilesManagerError: If reading the file or extracting the
+                character range fails.
         """
         try:
             content = Path(source.file_path).read_text()
@@ -123,7 +133,7 @@ class FilesManager:
             ) from e
 
     def load_search_results(self, file: str) -> StudentSearchResults:
-        """Loads and parses student search results from a JSON file.
+        """Load and parse student search results from a JSON file.
 
         Args:
             file: Path of the JSON file containing the search results.
@@ -132,7 +142,8 @@ class FilesManager:
             A StudentSearchResults object.
 
         Raises:
-            FilesManagerError: If loading, parsing, or Pydantic validation fails.
+            FilesManagerError: If loading, parsing, or Pydantic validation
+                fails.
         """
         try:
             content = Path(file).read_text()
