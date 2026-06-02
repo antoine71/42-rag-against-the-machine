@@ -521,6 +521,14 @@ wheels = [
 ]
 
 [[package]]
+name = "en-core-web-sm"
+version = "3.8.0"
+source = { url = "https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.8.0/en_core_web_sm-3.8.0-py3-none-any.whl" }
+wheels = [
+    { url = "https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.8.0/en_core_web_sm-3.8.0-py3-none-any.whl", hash = "sha256:1932429db727d4bff3deed6b34cfc05df17794f4a52eeb26cf8928f7c1a0fb85" },
+]
+
+[[package]]
 name = "exceptiongroup"
 version = "1.3.1"
 source = { registry = "https://pypi.org/simple" }
@@ -1901,6 +1909,7 @@ dependencies = [
     { name = "bm25s", extra = ["core"] },
     { name = "bs4" },
     { name = "chromadb" },
+    { name = "en-core-web-sm" },
     { name = "fire" },
     { name = "langchain-community" },
     { name = "markdown" },
@@ -1929,6 +1938,7 @@ requires-dist = [
     { name = "bm25s", extras = ["core"], specifier = ">=0.3.9" },
     { name = "bs4", specifier = ">=0.0.2" },
     { name = "chromadb", specifier = ">=1.5.9" },
+    { name = "en-core-web-sm", url = "https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.8.0/en_core_web_sm-3.8.0-py3-none-any.whl" },
     { name = "fire", specifier = ">=0.7.1" },
     { name = "langchain-community", specifier = ">=0.3.27" },
     { name = "markdown", specifier = ">=3.10.2" },

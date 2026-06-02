@@ -73,7 +73,7 @@ class LowerCasingProcessor(TextProcessor):
 
 class MarkdownCleaningProcessor(TextProcessor):
     def _process_core(self, text: str) -> str:
-        return BeautifulSoup(markdown(text), "html.parser").get_text("\n")
+        return BeautifulSoup(markdown(text), "html.parser").get_text()
 
 
 class CodeCleaningProcessor(TextProcessor):

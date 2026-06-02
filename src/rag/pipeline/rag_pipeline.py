@@ -2,14 +2,13 @@ import logging
 import uuid
 from pathlib import Path
 
+from rag.chunking.chunking_manager import ChunkingManager
+from rag.config.chunking_config import ChunkingConfig
 from rag.config.llm import LLMConfig
 from rag.evaluation.evaluation_processor import EvaluationProcessor
 from rag.indexing.files_repository_scanner import FilesRepositoryScanner
 from rag.indexing.indexing_manager import IndexingManager
 from rag.indexing.indexing_processor_factory import IndexingProcessorFactory
-from rag.indexing.langchain_chunking_processor import (
-    LangChainChunkingProcessor,
-)
 from rag.llm.llm_chat_processor import LLMChatProcessor
 from rag.llm.llm_manager import LLMManager
 from rag.models.chunk import FileType
@@ -71,7 +70,9 @@ class RAGPipeline:
         files = FilesRepositoryScanner(repository).list_files()
         self._tui.print(f"Found {len(files)} files from '{repository}'.")
 
-        chunks = LangChainChunkingProcessor(max_chunk_size, files).split()
+        chunking_config = ChunkingConfig(chunk_size=max_chunk_size)
+        chunking_manager = ChunkingManager(chunking_config, files, self._tui)
+        chunks = chunking_manager.split()
         self._tui.print(f"Split {len(files)} files into {len(chunks)} chunks.")
 
         indexing_processors = IndexingProcessorFactory.create(

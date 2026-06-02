@@ -29,8 +29,10 @@ class Chunk(BaseModel):
 
     text: str
     file_path: str
+    file_name: str
     type: FileType
     first_character_index: int
+    breadcrumbs: str
 
     @computed_field  # type: ignore[prop-decorator]
     @property
@@ -43,10 +45,12 @@ class Chunk(BaseModel):
         """Creates a Chunk object from a LangChain Document."""
         file_name = Path(document.metadata["file_path"]).name.replace("_", " ")
         return cls(
-            text=f"{file_name}\n{document.page_content}",
+            text=document.page_content,
             file_path=document.metadata["file_path"],
+            file_name=document.metadata["file_name"],
             type=document.metadata["type"],
             first_character_index=document.metadata["start_index"],
+            breadcrumbs=document.metadata.get("breadcrumbs", ""),
         )
 
     def to_minimal_source(self) -> MinimalSource:

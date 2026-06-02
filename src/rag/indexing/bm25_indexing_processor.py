@@ -40,7 +40,9 @@ class BM25IndexingProcessor(IndexingProcessor):
         chunks = [chunk for chunk in self._chunks if chunk.type == file_type]
         texts = [chunk.text for chunk in chunks]
         texts_processing_manager = self._get_text_processing_manager(file_type)
-        texts = texts_processing_manager.process_list(texts)
+        processed_texts = texts_processing_manager.process_list(texts)
+        for chunk, processed_text in zip(chunks, processed_texts):
+            chunk.text = processed_text
         corpus = bm25s.tokenize(texts)
         retriever = bm25s.BM25(**self._config.bm25_settings.model_dump())
         retriever.index(corpus, show_progress=True, leave_progress=True)
