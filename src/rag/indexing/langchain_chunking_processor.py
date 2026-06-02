@@ -5,14 +5,68 @@ from pathlib import Path
 
 from langchain_core.documents import Document
 from langchain_text_splitters import (
-    MarkdownTextSplitter,
+    MarkdownHeaderTextSplitter,
     PythonCodeTextSplitter,
+    RecursiveCharacterTextSplitter,
     TextSplitter,
 )
 
 from rag.models.chunk import Chunk, FileType
 
 logger = logging.getLogger(__name__)
+
+
+class MarkdownChunkingProcessor:
+    def __init__(self) -> None:
+        self._headers_to_split_on = [
+            ("#", "h1"),
+            ("##", "h2"),
+            ("###", "h3"),
+            ("####", "h4"),
+        ]
+        self._markdown_splitter = MarkdownHeaderTextSplitter(
+            headers_to_split_on=self._headers_to_split_on, strip_headers=False
+        )
+
+    def _enrich_header_splits(self, md_header_splits: list[Document]) -> None:
+        start_index = 0
+        for doc in md_header_splits:
+            first_char_index = start_index
+            doc.metadata["first_character_index"] = start_index
+            start_index += len(doc.page_content)
+
+    def _header_split(self, text: str) -> list[Document]:
+        md_header_splits = self._markdown_splitter.split_text(text)
+
+        start_index = 0
+        for doc in md_header_splits:
+            doc.metadata["first_character_index"] = start_index
+            start_index += len(doc.page_content)
+
+    def split(
+        self, text: str, max_chunk_size: int, overlap: float
+    ) -> list[Document]:
+
+        start_index = 0
+        for doc in md_header_splits:
+            doc.metadata["first_character_index"] = start_index
+            start_index += len(doc.page_content)
+
+        # Char-level splits
+        chunk_size = max_chunk_size
+        chunk_overlap = int(max_chunk_size * overlap)
+        text_splitter = RecursiveCharacterTextSplitter(
+            chunk_size=chunk_size,
+            chunk_overlap=chunk_overlap,
+            add_start_index=True,
+        )
+        splits = text_splitter.split_documents(md_header_splits)
+        for doc in splits:
+            doc.metadata["first_character_index"] += doc.metadata[
+                "start_index"
+            ]
+            del doc.metadata["start_index"]
+        return splits
 
 
 class LangChainChunkingProcessor:
@@ -31,7 +85,7 @@ class LangChainChunkingProcessor:
             files: A list of file Path objects to be split.
         """
         self._files = files
-        self._markdown_text_splitter = MarkdownTextSplitter(
+        self._markdown_text_splitter = MarkdownHeaderTextSplitter(
             chunk_size=chunk_size,
             chunk_overlap=max(10, chunk_size // 5),
             add_start_index=True,

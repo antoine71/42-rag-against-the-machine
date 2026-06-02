@@ -1,11 +1,11 @@
 from pydantic_settings import BaseSettings
 
-from rag.indexing.text_processors import (
+from rag.models.chunk import FileType
+from rag.text_processing.text_processors import (
     LemmatizationProcessor,
     MarkdownCleaningProcessor,
     TextProcessor,
 )
-from rag.models.chunk import FileType
 
 
 class TextProcessingConfig(BaseSettings):

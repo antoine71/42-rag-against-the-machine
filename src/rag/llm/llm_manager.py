@@ -63,7 +63,9 @@ class LLMManager:
                 f"Invalid model name: '{self._config.model}'"
             ) from e
 
-    def answer_queries(self, queries: ChatMessages) -> list[str]:
+    def answer_queries(
+        self, queries: ChatMessages, description: str = "Processing_queries"
+    ) -> list[str]:
         """Generates natural language answers for multiple formatted chat
         queries.
 
@@ -74,7 +76,7 @@ class LLMManager:
             A list of answer strings from the LLM.
         """
         with self._tui.progress(
-            "Processing queries", len(queries), "query"
+            description, len(queries), "query"
         ) as progress:
             output: list[str] = []
             for batch in batched(queries, self._config.batch_size):

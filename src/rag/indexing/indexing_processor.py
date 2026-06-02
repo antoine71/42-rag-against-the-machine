@@ -1,9 +1,9 @@
 from abc import ABC, abstractmethod
 
 from rag.config.indexing_config import IndexingConfig
-from rag.indexing.text_processing_factory import TextProcessingFactory
-from rag.indexing.text_processing_manager import TextProcessingManager
 from rag.models.chunk import Chunk, FileType
+from rag.text_processing.text_processing_factory import TextProcessingFactory
+from rag.text_processing.text_processing_pipeline import TextProcessingPipeline
 from rag.tui import TUI
 
 
@@ -29,9 +29,9 @@ class IndexingProcessor(ABC):
 
     def _get_text_processing_manager(
         self, file_type: FileType
-    ) -> TextProcessingManager:
+    ) -> TextProcessingPipeline:
         text_processors = self._text_processing_factory.create(file_type)
-        return TextProcessingManager(text_processors)
+        return TextProcessingPipeline(text_processors)
 
     @abstractmethod
     def index_corpus(self, save_directory: str, file_type: FileType) -> None:

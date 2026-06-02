@@ -1,4 +1,4 @@
-from rag.config.bm25 import BM25Configuration
+from rag.config.bm25_config import BM25Configuration
 from rag.config.embedding import EmbeddingConfig
 from rag.exceptions import RAGException
 from rag.indexing.bm25_indexing_processor import (

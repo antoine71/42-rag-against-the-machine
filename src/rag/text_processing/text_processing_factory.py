@@ -1,6 +1,6 @@
 from rag.config.text_processing import TextProcessingConfig
-from rag.indexing.text_processors import TextProcessor
 from rag.models.chunk import FileType
+from rag.text_processing.text_processors import TextProcessor
 from rag.tui import TUI
 
 

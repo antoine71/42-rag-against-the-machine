@@ -1,4 +1,4 @@
-from rag.config.bm25 import BM25Configuration
+from rag.config.bm25_config import BM25Configuration
 from rag.config.embedding import EmbeddingConfig
 from rag.models.indexing_method import IndexingMethod
 from rag.retrieving.bm25_retrieving_processor import BM25RetrievingProcessor

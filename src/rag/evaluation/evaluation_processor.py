@@ -26,6 +26,7 @@ class RecallEvaluation:
         recall_5: The recall at k=5 score.
         recall_10: The recall at k=10 score.
     """
+
     data_is_valid: bool = False
     number_of_questions: int = 0
     number_of_questions_with_sources: int = 0
@@ -118,9 +119,12 @@ class EvaluationProcessor:
             student_sources = student_search.retrieved_sources[
                 : min(k, len(student_search.retrieved_sources))
             ]
-            metrics.append(
-                self._evaluate_sources(truth_sources, student_sources)
-            )
+            metric = self._evaluate_sources(truth_sources, student_sources)
+            metrics.append(metric)
+            if k == 10 and metric == 0:
+                logger.debug(
+                    "Invalid sources for question %s", question.question_id
+                )
         return sum(metrics) / len(metrics) if metrics else 0.0
 
     def _evaluate_sources(

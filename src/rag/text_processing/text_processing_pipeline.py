@@ -1,7 +1,7 @@
-from rag.indexing.text_processors import TextProcessor
+from rag.text_processing.text_processors import TextProcessor
 
 
-class TextProcessingManager:
+class TextProcessingPipeline:
     def __init__(self, processing_stages: list[TextProcessor]) -> None:
         self._processing_stages = processing_stages
 

@@ -1,6 +1,6 @@
 import bm25s
 
-from rag.config.bm25 import BM25Configuration
+from rag.config.bm25_config import BM25Configuration
 from rag.models.chunk import FileType
 from rag.models.indexing_method import IndexingMethod
 from rag.models.question import UnansweredQuestion

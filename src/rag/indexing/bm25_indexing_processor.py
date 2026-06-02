@@ -2,7 +2,7 @@ import logging
 
 import bm25s
 
-from rag.config.bm25 import BM25Configuration
+from rag.config.bm25_config import BM25Configuration
 from rag.config.indexing_config import IndexingConfig
 from rag.indexing.indexing_processor import IndexingProcessor
 from rag.models.chunk import Chunk, FileType

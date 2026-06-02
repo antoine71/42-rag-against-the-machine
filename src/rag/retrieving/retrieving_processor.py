@@ -1,11 +1,11 @@
 from abc import ABC, abstractmethod
 
 from rag.config.retrieving_config import RetrievingConfig
-from rag.indexing.text_processing_factory import TextProcessingFactory
-from rag.indexing.text_processing_manager import TextProcessingManager
 from rag.models.chunk import FileType
 from rag.models.question import UnansweredQuestion
 from rag.models.search_result import StudentSearchResults
+from rag.text_processing.text_processing_factory import TextProcessingFactory
+from rag.text_processing.text_processing_pipeline import TextProcessingPipeline
 from rag.tui import TUI
 
 
@@ -32,9 +32,9 @@ class RetrievingProcessor(ABC):
 
     def _get_query_processing_manager(
         self, file_type: FileType
-    ) -> TextProcessingManager:
+    ) -> TextProcessingPipeline:
         text_processors = self._query_processing_factory.create(file_type)
-        return TextProcessingManager(text_processors)
+        return TextProcessingPipeline(text_processors)
 
     @abstractmethod
     def retrieve(

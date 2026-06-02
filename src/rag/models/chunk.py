@@ -41,8 +41,9 @@ class Chunk(BaseModel):
     @classmethod
     def from_document(cls, document: Document) -> "Chunk":
         """Creates a Chunk object from a LangChain Document."""
+        file_name = Path(document.metadata["file_path"]).name.replace("_", " ")
         return cls(
-            text=document.page_content,
+            text=f"{file_name}\n{document.page_content}",
             file_path=document.metadata["file_path"],
             type=document.metadata["type"],
             first_character_index=document.metadata["start_index"],

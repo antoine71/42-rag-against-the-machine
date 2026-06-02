@@ -3,11 +3,13 @@ from pydantic_settings import BaseSettings
 from rag.config.indexing_config import IndexingConfig
 from rag.config.retrieving_config import RetrievingConfig
 from rag.config.text_processing import TextProcessingConfig
-from rag.indexing.text_processors import (
-    LemmatizationProcessor,
-    MarkdownCleaningProcessor,
-)
 from rag.models.chunk import FileType
+from rag.text_processing.text_processors import (
+    LemmatizationProcessor,
+    LowerCasingProcessor,
+    MarkdownCleaningProcessor,
+    UnicodeNormalizerProcessor,
+)
 
 
 class BM25Settings(BaseSettings):
@@ -24,6 +26,8 @@ class BM25Configuration(IndexingConfig, RetrievingConfig):
     text_processing: TextProcessingConfig = TextProcessingConfig(
         processors={
             FileType.DOCUMENTATION: [
+                UnicodeNormalizerProcessor,
+                LowerCasingProcessor,
                 MarkdownCleaningProcessor,
                 LemmatizationProcessor,
             ],
@@ -33,6 +37,8 @@ class BM25Configuration(IndexingConfig, RetrievingConfig):
     query_processing: TextProcessingConfig = TextProcessingConfig(
         processors={
             FileType.DOCUMENTATION: [
+                UnicodeNormalizerProcessor,
+                LowerCasingProcessor,
                 LemmatizationProcessor,
             ],
             FileType.CODE: [],
