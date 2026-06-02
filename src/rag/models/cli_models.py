@@ -2,6 +2,7 @@ from typing import Annotated
 
 from pydantic import BaseModel, DirectoryPath, Field, FilePath
 
+from rag.models.chunk import FileType
 from rag.models.indexing_method import IndexingMethod
 
 
@@ -19,7 +20,8 @@ class Search(BaseModel):
 
     query: str
     index_directory: DirectoryPath
-    retrieving_method: IndexingMethod
+    indexing_method: IndexingMethod
+    file_type: FileType
     k: Annotated[int, Field(gt=0)]
 
 
@@ -29,7 +31,8 @@ class SearchDataset(BaseModel):
     dataset_path: FilePath
     index_directory: DirectoryPath
     save_directory: DirectoryPath
-    retrieving_method: IndexingMethod
+    indexing_method: IndexingMethod
+    file_type: FileType
     k: Annotated[int, Field(gt=0)]
 
 
@@ -38,7 +41,8 @@ class Answer(BaseModel):
 
     query: str
     index_directory: DirectoryPath
-    retrieving_method: IndexingMethod
+    indexing_method: IndexingMethod
+    file_type: FileType
     k: int
 
 

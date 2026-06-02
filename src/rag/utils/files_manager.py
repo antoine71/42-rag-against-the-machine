@@ -5,6 +5,8 @@ from typing import Literal, overload
 from pydantic import ValidationError
 
 from rag.exceptions import RAGException
+from rag.models.chunk import FileType
+from rag.models.indexing_method import IndexingMethod
 from rag.models.minimal_source import MinimalSource
 from rag.models.question import AnsweredQuestion, UnansweredQuestion
 from rag.models.rag_dataset import RagDataset
@@ -157,3 +159,13 @@ class FilesManager:
             raise FilesManagerError(
                 f"Failed to load search results from file '{file}': {e}"
             ) from e
+
+    @staticmethod
+    def get_indexing_directory(
+        save_directory: str,
+        indexing_method: IndexingMethod,
+        file_type: FileType,
+    ) -> str:
+        return str(
+            Path(save_directory) / indexing_method.value / file_type.value
+        )

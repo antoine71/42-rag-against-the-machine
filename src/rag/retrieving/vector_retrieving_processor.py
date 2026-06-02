@@ -4,10 +4,13 @@ from sentence_transformers import SentenceTransformer
 from sentence_transformers.util import dot_score, semantic_search
 
 from rag.config.embedding import EmbeddingConfig
+from rag.models.chunk import FileType
+from rag.models.indexing_method import IndexingMethod
 from rag.models.question import UnansweredQuestion
 from rag.models.search_result import MinimalSearchResults, StudentSearchResults
 from rag.retrieving.retrieving_processor import RetrievingProcessor
 from rag.tui import TUI
+from rag.utils.files_manager import FilesManager
 
 
 class VectorRetrievingProcessor(RetrievingProcessor):
@@ -15,20 +18,21 @@ class VectorRetrievingProcessor(RetrievingProcessor):
 
     WEIGHT = 1.0
 
-    def __init__(self, index_directory: str, tui: TUI) -> None:
+    def __init__(
+        self, index_directory: str, tui: TUI, config: EmbeddingConfig
+    ) -> None:
         """Initializes the VectorRetrievingProcessor.
 
         Args:
             index_directory: Path to ChromaDB database files.
             tui: A TUI instance to handle progress output.
         """
-        self._config = EmbeddingConfig()
+        super().__init__(index_directory, tui, config)
+        self._config: EmbeddingConfig
         self._embedder = SentenceTransformer(self._config.model)
-        self._store = chromadb.PersistentClient(index_directory)
-        self._tui = tui
 
     def retrieve(
-        self, queries: list[UnansweredQuestion], k: int
+        self, queries: list[UnansweredQuestion], k: int, file_type: FileType
     ) -> StudentSearchResults:
         """Performs batch semantic search on queries using ChromaDB HNSW.
 
@@ -39,7 +43,12 @@ class VectorRetrievingProcessor(RetrievingProcessor):
         Returns:
             A StudentSearchResults object.
         """
-        collection = self._store.get_collection(self._config.collection)
+        store = chromadb.PersistentClient(
+            FilesManager.get_indexing_directory(
+                self._index_directory, IndexingMethod.VECTOR, file_type
+            )
+        )
+        collection = store.get_collection(self._config.collection)
         corpus = collection.get(
             include=["embeddings", "metadatas", "documents"]
         )
@@ -50,9 +59,10 @@ class VectorRetrievingProcessor(RetrievingProcessor):
         with self._tui.progress(
             "Semantic search", len(queries), "query"
         ) as progress:
-            for i, query in enumerate(queries):
+            for query in queries:
                 query_embedding = self._embedder.encode_query(
                     query.question,
+                    show_progress_bar=False,
                 )
                 similarity_scores = semantic_search(
                     query_embedding,

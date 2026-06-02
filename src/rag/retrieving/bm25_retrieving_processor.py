@@ -1,11 +1,13 @@
-from pathlib import Path
-
 import bm25s
 
 from rag.config.bm25 import BM25Configuration
+from rag.models.chunk import FileType
+from rag.models.indexing_method import IndexingMethod
 from rag.models.question import UnansweredQuestion
 from rag.models.search_result import MinimalSearchResults, StudentSearchResults
 from rag.retrieving.retrieving_processor import RetrievingProcessor
+from rag.tui import TUI
+from rag.utils.files_manager import FilesManager
 
 
 class BM25RetrievingProcessor(RetrievingProcessor):
@@ -13,19 +15,21 @@ class BM25RetrievingProcessor(RetrievingProcessor):
     keyword search retrieval.
     """
 
-    WEIGHT = 1.3
+    WEIGHT = 1.9
 
-    def __init__(self, index_directory: str) -> None:
+    def __init__(
+        self, index_directory: str, tui: TUI, config: BM25Configuration
+    ) -> None:
         """Initializes the BM25RetrievingProcessor.
 
         Args:
             index_directory: The directory path where the BM25 index is saved.
         """
-        self._index_directory = Path(index_directory)
-        self._config = BM25Configuration()
+        super().__init__(index_directory, tui, config)
+        self._config: BM25Configuration
 
     def retrieve(
-        self, queries: list[UnansweredQuestion], k: int
+        self, queries: list[UnansweredQuestion], k: int, file_type: FileType
     ) -> StudentSearchResults:
         """Perform BM25 keyword search and retrieve top-k sources.
 
@@ -37,9 +41,19 @@ class BM25RetrievingProcessor(RetrievingProcessor):
         Returns:
             A StudentSearchResults object.
         """
-        query_tokens = bm25s.tokenize([query.question for query in queries])
+        chunks_index = FilesManager.get_indexing_directory(
+            self._index_directory, IndexingMethod.BM25, file_type
+        )
+        query_processing_manager = self._get_query_processing_manager(
+            file_type
+        )
+        processed_queries = query_processing_manager.process_list(
+            [query.question for query in queries]
+        )
+
+        query_tokens = bm25s.tokenize(processed_queries)
         retriever: bm25s.BM25 = bm25s.BM25().load(
-            self._index_directory,
+            chunks_index,
             load_corpus=True,
             **self._config.bm25_settings.model_dump(),
         )

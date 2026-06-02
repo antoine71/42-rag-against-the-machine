@@ -1,4 +1,6 @@
-from rag.exceptions import RAGException
+from rag.config.bm25 import BM25Configuration
+from rag.config.embedding import EmbeddingConfig
+from rag.models.indexing_method import IndexingMethod
 from rag.retrieving.bm25_retrieving_processor import BM25RetrievingProcessor
 from rag.retrieving.retrieving_processor import RetrievingProcessor
 from rag.retrieving.vector_retrieving_processor import (
@@ -12,7 +14,10 @@ class RetrievingProcessorFactory:
 
     @classmethod
     def create(
-        cls, retrieving_method: str, index_directory: str, tui: TUI
+        cls,
+        indexing_method: IndexingMethod,
+        index_directory: str,
+        tui: TUI,
     ) -> list[RetrievingProcessor]:
         """Creates RetrievingProcessor instances based on method name.
 
@@ -28,22 +33,23 @@ class RetrievingProcessorFactory:
         Raises:
             RAGException: If an invalid retrieving method is specified.
         """
+
         def bm25_factory() -> BM25RetrievingProcessor:
             """Creates a BM25 retrieving processor instance."""
-            return BM25RetrievingProcessor(index_directory)
+            return BM25RetrievingProcessor(
+                index_directory, tui, BM25Configuration()
+            )
 
         def vector_factory() -> VectorRetrievingProcessor:
             """Creates a vector retrieving processor instance."""
-            return VectorRetrievingProcessor(index_directory, tui)
+            return VectorRetrievingProcessor(
+                index_directory, tui, EmbeddingConfig()
+            )
 
-        match retrieving_method:
-            case "bm25":
+        match indexing_method:
+            case IndexingMethod.BM25:
                 return [bm25_factory()]
-            case "vector":
+            case IndexingMethod.VECTOR:
                 return [vector_factory()]
-            case "hybrid":
+            case IndexingMethod.HYBRID:
                 return [bm25_factory(), vector_factory()]
-            case _:
-                raise RAGException(
-                    f"Invalid retrieving method '{retrieving_method}'"
-                )

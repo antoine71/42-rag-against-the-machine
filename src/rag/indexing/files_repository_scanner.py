@@ -8,8 +8,7 @@ logger = logging.getLogger(__name__)
 
 
 class FilesRepositoryScannerError(RAGException):
-    """Exception raised when an error occurs during repository file scanning.
-    """
+    """Exception raised when an error occurs during repository file scanning."""
 
 
 class FilesRepositoryScanner:
@@ -85,7 +84,7 @@ class FilesRepositoryScanner:
         """
         try:
             return (
-                file_path.suffix in {".py", ".md"}
+                file_path.suffix in {".py", ".md", ".txt"}
                 and file_path.stat().st_size > 0
             )
         except OSError as e:

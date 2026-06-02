@@ -12,6 +12,7 @@ from rag.indexing.langchain_chunking_processor import (
 )
 from rag.llm.llm_chat_processor import LLMChatProcessor
 from rag.llm.llm_manager import LLMManager
+from rag.models.chunk import FileType
 from rag.models.cli_models import (
     Answer,
     AnswerDataset,
@@ -55,6 +56,7 @@ class RAGPipeline:
         repository: str = "data/raw/vllm-0.10.1",
         save_directory: str = "data/processed/",
         indexing_method: IndexingMethod = IndexingMethod.BM25,
+        file_type: str | None = None,
     ) -> None:
         """Scans the repository, chunks files, and builds a searchable index.
 
@@ -67,9 +69,7 @@ class RAGPipeline:
                 'bm25', 'vector', or 'hybrid').
         """
         files = FilesRepositoryScanner(repository).list_files()
-        self._tui.print(
-            f"Found {len(files)} py and md files from '{repository}'."
-        )
+        self._tui.print(f"Found {len(files)} files from '{repository}'.")
 
         chunks = LangChainChunkingProcessor(max_chunk_size, files).split()
         self._tui.print(f"Split {len(files)} files into {len(chunks)} chunks.")
@@ -78,17 +78,15 @@ class RAGPipeline:
             indexing_method, chunks, self._tui
         )
         indexing_manager = IndexingManager(indexing_processors)
-        indexing_manager.process(save_directory)
-        self._tui.print(
-            f"Ingestion complete! Indices saved under {save_directory}"
-        )
+        indexing_manager.process(save_directory, FileType(file_type))
 
     @validate_with(Search)
     def search(
         self,
         query: str,
         index_directory: str = "data/processed",
-        retrieving_method: IndexingMethod = IndexingMethod.BM25,
+        indexing_method: str = "bm25",
+        file_type: str = "documentation",
         k: int = 10,
     ) -> None:
         """Searches the knowledge base for a single query and prints top
@@ -102,7 +100,10 @@ class RAGPipeline:
             k: Number of top results to retrieve.
         """
         retrievers = RetrievingProcessorFactory.create(
-            retrieving_method, index_directory, self._tui
+            IndexingMethod(indexing_method),
+            index_directory,
+            self._tui,
+            FileType(file_type),
         )
         retrieving_manager = RetrievingManager(retrievers)
         question = UnansweredQuestion(
@@ -116,11 +117,12 @@ class RAGPipeline:
         self,
         dataset_path: str = (
             "datasets_public/public/UnansweredQuestions"
-            "/dataset_code_public.json"
+            "/dataset_docs_public.json"
         ),
         index_directory: str = "data/processed",
         save_directory: str = "data/output/search_results",
-        retrieving_method: IndexingMethod = IndexingMethod.BM25,
+        indexing_method: str = "bm25",
+        file_type: str = "documentation",
         k: int = 10,
     ) -> None:
         """Processes queries from a JSON dataset and saves search results.
@@ -139,10 +141,14 @@ class RAGPipeline:
             dataset_path, "unanswered_questions"
         )
         retrievers = RetrievingProcessorFactory.create(
-            retrieving_method, index_directory, self._tui
+            IndexingMethod(indexing_method),
+            index_directory,
+            self._tui,
         )
         retrieving_manager = RetrievingManager(retrievers)
-        results = retrieving_manager.process(dataset.rag_questions, k)
+        results = retrieving_manager.process(
+            dataset.rag_questions, k, FileType(file_type)
+        )
         save_file_name = Path(dataset_path).name
         save_file_path_obj = Path(save_directory) / save_file_name
         self._files_manager.save_results(results, str(save_file_path_obj))
@@ -155,7 +161,8 @@ class RAGPipeline:
         self,
         query: str,
         index_directory: str = "data/processed",
-        retrieving_method: IndexingMethod = IndexingMethod.BM25,
+        indexing_method: str = "bm25",
+        file_type: str = "documentation",
         k: int = 10,
     ) -> None:
         """Retrieves context and generates a natural answer for a single query.
@@ -168,7 +175,10 @@ class RAGPipeline:
             k: Number of top results to retrieve as context.
         """
         retrievers = RetrievingProcessorFactory.create(
-            retrieving_method, index_directory, self._tui
+            IndexingMethod(indexing_method),
+            index_directory,
+            self._tui,
+            FileType(file_type),
         )
         retrieving_manager = RetrievingManager(retrievers)
         question = UnansweredQuestion(
@@ -193,7 +203,7 @@ class RAGPipeline:
     def answer_dataset(
         self,
         student_search_result_path: str = (
-            "data/output/search_results/dataset_code_public.json"
+            "data/output/search_results/dataset_docs_public.json"
         ),
         save_directory: str = "data/output/search_result_and_answer",
         k: int = 10,
@@ -234,10 +244,10 @@ class RAGPipeline:
     def evaluate(
         self,
         student_answer_path: str = (
-            "data/output/search_results/dataset_code_public.json"
+            "data/output/search_results/dataset_docs_public.json"
         ),
         dataset_path: str = (
-            "datasets_public/public/AnsweredQuestions/dataset_code_public.json"
+            "datasets_public/public/AnsweredQuestions/dataset_docs_public.json"
         ),
     ) -> None:
         """Evaluate student search results against the answered questions

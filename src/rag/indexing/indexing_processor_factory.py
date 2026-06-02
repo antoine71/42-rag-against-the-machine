@@ -34,6 +34,7 @@ class IndexingProcessorFactory:
         Raises:
             RAGException: If an invalid indexing method is specified.
         """
+
         def bm25_factory() -> BM25IndexingProcessor:
             """Creates a BM25 indexing processor instance."""
             return BM25IndexingProcessor(chunks, tui, BM25Configuration())

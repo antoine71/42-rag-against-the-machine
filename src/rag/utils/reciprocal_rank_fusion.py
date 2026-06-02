@@ -26,5 +26,5 @@ def reciprocal_rank_fusion(
     rrf_scores: dict[MinimalSource, float] = defaultdict(float)
     for ranking, weight in zip(rankings, weights):
         for rank, document in enumerate(ranking, start=1):
-            rrf_scores[document] += weight * (1 / (k + rank - 1))
+            rrf_scores[document] += weight * (1 / (k + rank + 1))
     return sorted(rrf_scores.keys(), key=lambda x: rrf_scores[x], reverse=True)

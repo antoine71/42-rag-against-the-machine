@@ -1,4 +1,5 @@
 from rag.config.rrf import RRFConfig
+from rag.models.chunk import FileType
 from rag.models.question import UnansweredQuestion
 from rag.models.search_result import MinimalSearchResults, StudentSearchResults
 from rag.retrieving.retrieving_processor import RetrievingProcessor
@@ -26,9 +27,7 @@ class RetrievingManager:
         self._rrf_config = RRFConfig()
 
     def process(
-        self,
-        queries: list[UnansweredQuestion],
-        k: int,
+        self, queries: list[UnansweredQuestion], k: int, file_type: FileType
     ) -> StudentSearchResults:
         """Processes queries using the configured retrieving processors.
 
@@ -40,13 +39,11 @@ class RetrievingManager:
             A StudentSearchResults containing combined, ranked sources.
         """
         if len(self._retrieving_processors) == 1:
-            return self._simple_retrieving(queries, k)
-        return self._multiple_retrieving(queries, k)
+            return self._simple_retrieving(queries, k, file_type)
+        return self._multiple_retrieving(queries, k, file_type)
 
     def _multiple_retrieving(
-        self,
-        queries: list[UnansweredQuestion],
-        k: int,
+        self, queries: list[UnansweredQuestion], k: int, file_type: FileType
     ) -> StudentSearchResults:
         """Retrieves and reranks results from multiple retrieving processors
         using RRF.
@@ -59,7 +56,9 @@ class RetrievingManager:
             A reranked StudentSearchResults object.
         """
         search_results = [
-            processor.retrieve(queries, k * self._rrf_config.k_factor)
+            processor.retrieve(
+                queries, k * self._rrf_config.k_factor, file_type
+            )
             for processor in self._retrieving_processors
         ]
         reranked_result = self._rerank_results(
@@ -71,7 +70,7 @@ class RetrievingManager:
         return reranked_result
 
     def _simple_retrieving(
-        self, queries: list[UnansweredQuestion], k: int
+        self, queries: list[UnansweredQuestion], k: int, file_type: FileType
     ) -> StudentSearchResults:
         """Retrieves results using the single configured retrieving processor.
 
@@ -82,7 +81,9 @@ class RetrievingManager:
         Returns:
             A StudentSearchResults object.
         """
-        search_results = self._retrieving_processors[0].retrieve(queries, k)
+        search_results = self._retrieving_processors[0].retrieve(
+            queries, k, file_type
+        )
         return search_results
 
     def _rerank_results(

@@ -10,17 +10,17 @@ from rag.models.minimal_source import MinimalSource
 class FileType(str, Enum):
     """Enum representing supported repository file types."""
 
-    PYTHON = "python"
-    MARKDOWN = "markdown"
+    CODE = "code"
+    DOCUMENTATION = "documentation"
 
     @classmethod
     def from_file(cls, file: Path) -> "FileType":
         """Returns the FileType enum value for a given file path."""
         match file.suffix:
             case ".py":
-                return cls.PYTHON
-            case ".md":
-                return cls.MARKDOWN
+                return cls.CODE
+            case ".md" | ".txt":
+                return cls.DOCUMENTATION
         raise ValueError(f"Invalid file suffix '{file.suffix}'")
 
 

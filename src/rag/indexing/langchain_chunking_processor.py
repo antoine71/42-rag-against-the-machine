@@ -33,13 +33,13 @@ class LangChainChunkingProcessor:
         self._files = files
         self._markdown_text_splitter = MarkdownTextSplitter(
             chunk_size=chunk_size,
-            chunk_overlap=max(10, chunk_size // 20),
+            chunk_overlap=max(10, chunk_size // 5),
             add_start_index=True,
             length_function=len,
         )
         self._python_text_splitter = PythonCodeTextSplitter(
             chunk_size=chunk_size,
-            chunk_overlap=max(10, chunk_size // 20),
+            chunk_overlap=max(10, chunk_size // 5),
             add_start_index=True,
             length_function=len,
         )
@@ -91,9 +91,11 @@ class LangChainChunkingProcessor:
         """
         chunks = list(
             itertools.chain(
-                self._split_documents("python", self._python_text_splitter),
                 self._split_documents(
-                    "markdown", self._markdown_text_splitter
+                    FileType.CODE, self._python_text_splitter
+                ),
+                self._split_documents(
+                    FileType.DOCUMENTATION, self._markdown_text_splitter
                 ),
             )
         )
