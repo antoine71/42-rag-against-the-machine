@@ -2,9 +2,10 @@ import logging
 
 from langchain_core.documents import Document
 from langchain_text_splitters import (
-    MarkdownHeaderTextSplitter,
+    ExperimentalMarkdownSyntaxTextSplitter,
     RecursiveCharacterTextSplitter,
 )
+from markdown_it import MarkdownIt
 
 from rag.chunking.chunking_processor import ChunkingProcessor
 from rag.tui import TUI
@@ -17,10 +18,8 @@ class MarkdownChunkingProcessor(ChunkingProcessor):
         self._headers_to_split_on = [
             ("#", "h1"),
             ("##", "h2"),
-            ("###", "h3"),
-            ("####", "h4"),
         ]
-        self._markdown_splitter = MarkdownHeaderTextSplitter(
+        self._markdown_splitter = ExperimentalMarkdownSyntaxTextSplitter(
             headers_to_split_on=self._headers_to_split_on, strip_headers=False
         )
         self._text_splitter = RecursiveCharacterTextSplitter(
@@ -28,6 +27,9 @@ class MarkdownChunkingProcessor(ChunkingProcessor):
             chunk_overlap=overlap,
             add_start_index=True,
             length_function=len,
+        )
+        self._cleanup_splitter = ExperimentalMarkdownSyntaxTextSplitter(
+            headers_to_split_on=self._headers_to_split_on, strip_headers=True
         )
         self._tui = tui
 
@@ -76,6 +78,26 @@ class MarkdownChunkingProcessor(ChunkingProcessor):
             )
         return splits
 
+    def _is_lonely_header(self, text: str) -> bool:
+        md = MarkdownIt()
+        tokens = md.parse(text)
+        meaningful_tokens = [
+            token for token in tokens if token.type != "inline"
+        ]
+        return all(
+            token.type in ("heading_open", "heading_close")
+            for token in meaningful_tokens
+        )
+
+    def _cleanup_lonely_headers(
+        self, char_level_splits: list[Document]
+    ) -> list[Document]:
+        return [
+            doc
+            for doc in char_level_splits
+            if not self._is_lonely_header(doc.page_content)
+        ]
+
     def _split(self, document: Document) -> list[Document]:
 
         md_header_splits = self._header_split(document)
@@ -91,4 +113,6 @@ class MarkdownChunkingProcessor(ChunkingProcessor):
             for document in documents:
                 splitted_documents.extend(self._split(document))
                 progress.update(1)
+        for document in splitted_documents:
+            document.page_content = f"{document.metadata['file_name']}\n{document.metadata['breadcrumbs']}\n{document.page_content}"
         return splitted_documents

@@ -1,9 +1,17 @@
+from pathlib import Path
 from typing import Annotated
 
-from pydantic import BaseModel, DirectoryPath, Field, FilePath
+from pydantic import BaseModel, BeforeValidator, DirectoryPath, Field, FilePath
 
 from rag.models.chunk import FileType
 from rag.models.indexing_method import IndexingMethod
+
+
+def validate_save_dir(value: str) -> str:
+    path = Path(value)
+    if not path.exists():
+        path.mkdir(parents=True)
+    return value
 
 
 class Index(BaseModel):
@@ -11,7 +19,9 @@ class Index(BaseModel):
 
     max_chunk_size: Annotated[int, Field(gt=0)]
     repository: DirectoryPath
-    save_directory: DirectoryPath
+    save_directory: Annotated[
+        DirectoryPath, BeforeValidator(validate_save_dir)
+    ]
     indexing_method: IndexingMethod
 
 
@@ -30,7 +40,9 @@ class SearchDataset(BaseModel):
 
     dataset_path: FilePath
     index_directory: DirectoryPath
-    save_directory: DirectoryPath
+    save_directory: Annotated[
+        DirectoryPath, BeforeValidator(validate_save_dir)
+    ]
     indexing_method: IndexingMethod
     file_type: FileType
     k: Annotated[int, Field(gt=0)]
@@ -50,7 +62,9 @@ class AnswerDataset(BaseModel):
     """Validation model for the answer_dataset CLI command."""
 
     student_search_result_path: FilePath
-    save_directory: DirectoryPath
+    save_directory: Annotated[
+        DirectoryPath, BeforeValidator(validate_save_dir)
+    ]
     k: int
 
 
