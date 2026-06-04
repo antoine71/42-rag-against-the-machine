@@ -71,7 +71,9 @@ class RAGPipeline:
         self._tui.print(f"Found {len(files)} files from '{repository}'.")
 
         chunking_config = ChunkingConfig(chunk_size=max_chunk_size)
-        chunking_manager = ChunkingManager(chunking_config, files, self._tui)
+        chunking_manager = ChunkingManager(
+            chunking_config, files, self._tui, repository
+        )
         chunks = chunking_manager.split()
         self._tui.print(f"Split {len(files)} files into {len(chunks)} chunks.")
 
@@ -118,7 +120,7 @@ class RAGPipeline:
         self,
         dataset_path: str = (
             "datasets_public/public/UnansweredQuestions"
-            "/dataset_docs_public.json"
+            "/dataset_code_public.json"
         ),
         index_directory: str = "data/processed",
         save_directory: str = "data/output/search_results",
@@ -204,7 +206,7 @@ class RAGPipeline:
     def answer_dataset(
         self,
         student_search_result_path: str = (
-            "data/output/search_results/dataset_docs_public.json"
+            "data/output/search_results/dataset_code_public.json"
         ),
         save_directory: str = "data/output/search_result_and_answer",
         k: int = 10,
@@ -245,10 +247,10 @@ class RAGPipeline:
     def evaluate(
         self,
         student_answer_path: str = (
-            "data/output/search_results/dataset_docs_public.json"
+            "data/output/search_results/dataset_code_public.json"
         ),
         dataset_path: str = (
-            "datasets_public/public/AnsweredQuestions/dataset_docs_public.json"
+            "datasets_public/public/AnsweredQuestions/dataset_code_public.json"
         ),
     ) -> None:
         """Evaluate student search results against the answered questions

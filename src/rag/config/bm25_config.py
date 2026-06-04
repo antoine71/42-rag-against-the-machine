@@ -5,18 +5,16 @@ from rag.config.retrieving_config import RetrievingConfig
 from rag.config.text_processing import TextProcessingConfig
 from rag.models.chunk import FileType
 from rag.text_processing.text_processors import (
-    LemmatizationProcessor,
-    LowerCasingProcessor,
-    MarkdownCleaningProcessor,
-    UnicodeNormalizerProcessor,
+    CodeCleaningProcessor,
+    FilePathExpansionProcessor,
 )
 
 
 class BM25Settings(BaseSettings):
     """Configuration settings used by the BM25 retrieval model."""
 
-    k1: float = 0.88
-    b: float = 0.7
+    k1: float = 1.2
+    b: float = 0.75
 
 
 class BM25Configuration(IndexingConfig, RetrievingConfig):
@@ -25,22 +23,13 @@ class BM25Configuration(IndexingConfig, RetrievingConfig):
     bm25_settings: BM25Settings = BM25Settings()
     text_processing: TextProcessingConfig = TextProcessingConfig(
         processors={
-            FileType.DOCUMENTATION: [
-                UnicodeNormalizerProcessor,
-                LowerCasingProcessor,
-                MarkdownCleaningProcessor,
-                LemmatizationProcessor,
-            ],
-            FileType.CODE: [],
+            FileType.DOCUMENTATION: [FilePathExpansionProcessor],
+            FileType.CODE: [CodeCleaningProcessor, FilePathExpansionProcessor],
         }
     )
     query_processing: TextProcessingConfig = TextProcessingConfig(
         processors={
-            FileType.DOCUMENTATION: [
-                UnicodeNormalizerProcessor,
-                LowerCasingProcessor,
-                LemmatizationProcessor,
-            ],
-            FileType.CODE: [],
+            FileType.DOCUMENTATION: [],
+            FileType.CODE: [CodeCleaningProcessor],
         }
     )

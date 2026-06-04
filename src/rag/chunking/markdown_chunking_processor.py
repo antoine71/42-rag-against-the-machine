@@ -19,8 +19,11 @@ class MarkdownChunkingProcessor(ChunkingProcessor):
             ("#", "h1"),
             ("##", "h2"),
         ]
-        self._markdown_splitter = ExperimentalMarkdownSyntaxTextSplitter(
-            headers_to_split_on=self._headers_to_split_on, strip_headers=False
+        self._markdown_splitter = RecursiveCharacterTextSplitter(
+            chunk_size=max_chunk_size,
+            chunk_overlap=overlap,
+            add_start_index=True,
+            length_function=len,
         )
         self._text_splitter = RecursiveCharacterTextSplitter(
             chunk_size=max_chunk_size,
@@ -106,13 +109,5 @@ class MarkdownChunkingProcessor(ChunkingProcessor):
         return char_level_splits
 
     def split_documents(self, documents: list[Document]) -> list[Document]:
-        splitted_documents: list[Document] = []
-        with self._tui.progress(
-            self.__class__.__name__, len(documents), "document"
-        ) as progress:
-            for document in documents:
-                splitted_documents.extend(self._split(document))
-                progress.update(1)
-        for document in splitted_documents:
-            document.page_content = f"{document.metadata['file_name']}\n{document.metadata['breadcrumbs']}\n{document.page_content}"
-        return splitted_documents
+
+        return self._markdown_splitter.split_documents(documents)

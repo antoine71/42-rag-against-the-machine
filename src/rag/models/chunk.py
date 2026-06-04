@@ -2,7 +2,7 @@ from enum import Enum
 from pathlib import Path
 
 from langchain_core.documents import Document
-from pydantic import BaseModel, computed_field
+from pydantic import BaseModel
 
 from rag.models.minimal_source import MinimalSource
 
@@ -32,25 +32,21 @@ class Chunk(BaseModel):
     file_name: str
     type: FileType
     first_character_index: int
-    breadcrumbs: str
-
-    @computed_field  # type: ignore[prop-decorator]
-    @property
-    def last_character_index(self) -> int:
-        """Returns the ending character index for the chunk."""
-        return self.first_character_index + len(self.text)
+    last_character_index: int
+    repository: str
 
     @classmethod
     def from_document(cls, document: Document) -> "Chunk":
         """Creates a Chunk object from a LangChain Document."""
-        file_name = Path(document.metadata["file_path"]).name.replace("_", " ")
         return cls(
             text=document.page_content,
             file_path=document.metadata["file_path"],
             file_name=document.metadata["file_name"],
             type=document.metadata["type"],
             first_character_index=document.metadata["start_index"],
-            breadcrumbs=document.metadata.get("breadcrumbs", ""),
+            last_character_index=document.metadata["start_index"]
+            + len(document.page_content),
+            repository=document.metadata["repository"],
         )
 
     def to_minimal_source(self) -> MinimalSource:

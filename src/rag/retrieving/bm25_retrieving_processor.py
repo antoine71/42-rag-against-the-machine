@@ -6,6 +6,7 @@ from rag.models.indexing_method import IndexingMethod
 from rag.models.question import UnansweredQuestion
 from rag.models.search_result import MinimalSearchResults, StudentSearchResults
 from rag.retrieving.retrieving_processor import RetrievingProcessor
+from rag.text_processing.pipeline_factory import ProcessingPipelineFactory
 from rag.tui import TUI
 from rag.utils.files_manager import FilesManager
 
@@ -44,10 +45,13 @@ class BM25RetrievingProcessor(RetrievingProcessor):
         chunks_index = FilesManager.get_indexing_directory(
             self._index_directory, IndexingMethod.BM25, file_type
         )
-        query_processing_manager = self._get_query_processing_manager(
+        query_processing_pipeline_factory = ProcessingPipelineFactory(
+            self._config.query_processing, self._tui
+        )
+        query_processing_pipeline = query_processing_pipeline_factory.create(
             file_type
         )
-        processed_queries = query_processing_manager.process_list(
+        processed_queries = query_processing_pipeline.process_list(
             [query.question for query in queries]
         )
 

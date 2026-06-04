@@ -8,7 +8,7 @@ logger = logging.getLogger(__name__)
 
 
 class FilesRepositoryScannerError(RAGException):
-    """Exception raised when an error occurs during repository file scanning."""
+    """Exception raised when an error occurs during repository scanning."""
 
 
 class FilesRepositoryScanner:

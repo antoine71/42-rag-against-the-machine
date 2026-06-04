@@ -5,7 +5,6 @@ from pathlib import Path
 
 from langchain_core.documents import Document
 from langchain_text_splitters import (
-    PythonCodeTextSplitter,
     RecursiveCharacterTextSplitter,
 )
 
@@ -20,19 +19,26 @@ logger = logging.getLogger(__name__)
 
 class ChunkingManager:
     def __init__(
-        self, config: ChunkingConfig, files: list[Path], tui: TUI
+        self,
+        config: ChunkingConfig,
+        files: list[Path],
+        tui: TUI,
+        repository: str,
     ) -> None:
         self._files = files
         self._tui = tui
         self._config = config
+        self._repository = repository
         self._markdown_splitter: ChunkingProcessor = MarkdownChunkingProcessor(
             config.chunk_size, config.overlap, self._tui
         )
-        self._python_splitter: ChunkingProcessor = PythonCodeTextSplitter(
-            chunk_size=config.chunk_size,
-            chunk_overlap=config.overlap,
-            add_start_index=True,
-            length_function=len,
+        self._python_splitter: ChunkingProcessor = (
+            RecursiveCharacterTextSplitter(
+                chunk_size=config.chunk_size,
+                chunk_overlap=config.overlap,
+                add_start_index=True,
+                length_function=len,
+            )
         )
         self._plain_text_splitter: ChunkingProcessor = (
             RecursiveCharacterTextSplitter(
@@ -52,6 +58,7 @@ class ChunkingManager:
                     "file_path": str(file),
                     "file_name": file.name,
                     "type": FileType.from_file(file),
+                    "repository": self._repository,
                 },
             )
 

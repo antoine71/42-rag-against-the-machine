@@ -7,6 +7,7 @@ from rag.config.indexing_config import IndexingConfig
 from rag.indexing.indexing_processor import IndexingProcessor
 from rag.models.chunk import Chunk, FileType
 from rag.models.indexing_method import IndexingMethod
+from rag.text_processing.pipeline_factory import ProcessingPipelineFactory
 from rag.tui import TUI
 from rag.utils.files_manager import FilesManager
 
@@ -38,11 +39,12 @@ class BM25IndexingProcessor(IndexingProcessor):
         """
         self._ui.print(f"Indexing {file_type}...")
         chunks = [chunk for chunk in self._chunks if chunk.type == file_type]
-        texts = [chunk.text for chunk in chunks]
-        texts_processing_manager = self._get_text_processing_manager(file_type)
-        processed_texts = texts_processing_manager.process_list(texts)
-        for chunk, processed_text in zip(chunks, processed_texts):
-            chunk.text = processed_text
+        chunks_processing_pipeline = ProcessingPipelineFactory(
+            self._config.text_processing, self._ui
+        )
+        text_processing_pipeline = chunks_processing_pipeline.create(file_type)
+        processed_chunks = text_processing_pipeline.process_list(chunks)
+        texts = [chunk.text for chunk in processed_chunks]
         corpus = bm25s.tokenize(texts)
         retriever = bm25s.BM25(**self._config.bm25_settings.model_dump())
         retriever.index(corpus, show_progress=True, leave_progress=True)
