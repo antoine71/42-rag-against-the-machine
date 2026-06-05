@@ -6,7 +6,7 @@ from rag.retrieving.retrieving_processor import RetrievingProcessor
 from rag.utils.reciprocal_rank_fusion import reciprocal_rank_fusion
 
 
-class RetrievingManager:
+class RetrievingPipeline:
     """Manager class that coordinates retrieval from single or multiple
     retrieving processors.
 

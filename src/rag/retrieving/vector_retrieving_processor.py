@@ -1,3 +1,5 @@
+from typing import Any, Mapping
+
 import chromadb
 import torch
 from sentence_transformers import SentenceTransformer
@@ -6,8 +8,6 @@ from sentence_transformers.util import dot_score, semantic_search
 from rag.config.embedding import EmbeddingConfig
 from rag.models.chunk import FileType
 from rag.models.indexing_method import IndexingMethod
-from rag.models.question import UnansweredQuestion
-from rag.models.search_result import MinimalSearchResults, StudentSearchResults
 from rag.retrieving.retrieving_processor import RetrievingProcessor
 from rag.tui import TUI
 from rag.utils.files_manager import FilesManager
@@ -31,18 +31,9 @@ class VectorRetrievingProcessor(RetrievingProcessor):
         self._config: EmbeddingConfig
         self._embedder = SentenceTransformer(self._config.model)
 
-    def retrieve(
-        self, queries: list[UnansweredQuestion], k: int, file_type: FileType
-    ) -> StudentSearchResults:
-        """Performs batch semantic search on queries using ChromaDB HNSW.
-
-        Args:
-            queries: A list of queries to search.
-            k: The number of top results to retrieve.
-
-        Returns:
-            A StudentSearchResults object.
-        """
+    def _load_and_retrieve(
+        self, file_type: FileType, processed_queries: list[str], k: int
+    ) -> list[list[Mapping[str, Any]]]:
         store = chromadb.PersistentClient(
             FilesManager.get_indexing_directory(
                 self._index_directory, IndexingMethod.VECTOR, file_type
@@ -57,11 +48,11 @@ class VectorRetrievingProcessor(RetrievingProcessor):
         )
         results = []
         with self._tui.progress(
-            "Semantic search", len(queries), "query"
+            "Semantic search", len(processed_queries), "query"
         ) as progress:
-            for query in queries:
+            for query in processed_queries:
                 query_embedding = self._embedder.encode_query(
-                    query.question,
+                    query,
                     show_progress_bar=False,
                 )
                 similarity_scores = semantic_search(
@@ -75,9 +66,4 @@ class VectorRetrievingProcessor(RetrievingProcessor):
                 assert metadatas is not None
                 results.append([metadatas[idx] for idx in indices])
                 progress.update(1)
-
-        search_result = [
-            MinimalSearchResults.from_query_and_sources(query, sources)
-            for query, sources in zip(queries, results)
-        ]
-        return StudentSearchResults(search_results=search_result, k=k)
+        return results

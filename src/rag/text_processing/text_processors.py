@@ -5,6 +5,8 @@ from abc import ABC
 from pathlib import Path
 from typing import Callable, Generic
 
+import spacy
+
 from rag.models.chunk import Chunk
 from rag.text_processing.text_type import TextType
 from rag.tui import TUI
@@ -31,7 +33,9 @@ class TextProcessor(ABC, Generic[TextType]):
         func: Callable[["TextProcessor[TextType]", TextType], TextType],
     ) -> Callable[["TextProcessor[TextType]", TextType], TextType]:
         @functools.wraps(func)
-        def wrapper(self, item: TextType) -> TextType:
+        def wrapper(
+            self: "TextProcessor[TextType]", item: TextType
+        ) -> TextType:
             logger.debug(f"{self.__class__.__name__}: processing:\n{item}")
             item = func(self, item)
             logger.debug(
@@ -45,14 +49,22 @@ class TextProcessor(ABC, Generic[TextType]):
     def process(self, item: TextType) -> TextType:
         return self._process_core(item)
 
-    def _process_core(self, item: TextType) -> TextType:
+    def _process_chunk(self, item: Chunk) -> Chunk:
+        cleaned_code = self._process_str(item.text)
+        item.text = cleaned_code
         return item
+
+    @functools.lru_cache
+    def _process_str(self, item: str) -> str:
+        raise NotImplementedError
+
+    def _process_core(self, item: TextType) -> TextType:
+        if isinstance(item, Chunk):
+            return self._process_chunk(item)
+        return self._process_str(item)
 
 
 class CodeCleaningProcessor(TextProcessor[TextType]):
-    def _process_core(self, item: TextType) -> TextType:
-        return self._process_unit(item)
-
     def _humanize(self, name: str) -> str:
         s = re.sub(r"([A-Z]+)([A-Z][a-z])", r"\1 \2", name)
         s = re.sub(r"([a-z\d])([A-Z])", r"\1 \2", s)
@@ -66,22 +78,8 @@ class CodeCleaningProcessor(TextProcessor[TextType]):
         )
         return content
 
-    @functools.singledispatchmethod
-    def _process_unit(self, item: TextType) -> TextType:
-        raise NotImplementedError
-
-    @_process_unit.register
-    def _(self, item: Chunk) -> Chunk:
-        cleaned_code = item.text.replace("_", " ").replace("-", " ")
-        cleaned_code = self._remove_pascal_case(cleaned_code)
-        cleaned_code = re.sub(
-            r"[()\[\]{}.,:;=+\-*/<>!&|%^~`\"']", " ", cleaned_code
-        )
-        item.text = item.text + "\n" + cleaned_code
-        return item
-
-    @_process_unit.register
-    def _(self, item: str) -> str:
+    @functools.lru_cache
+    def _process_str(self, item: str) -> str:
         cleaned_code = item.replace("_", " ").replace("-", " ")
         cleaned_code = self._remove_pascal_case(cleaned_code)
         cleaned_code = re.sub(
@@ -93,31 +91,39 @@ class CodeCleaningProcessor(TextProcessor[TextType]):
 
 
 class FilePathExpansionProcessor(TextProcessor[Chunk]):
+    @functools.lru_cache
     def _generate_breadcrumbs(self, file_path: Path, repository: str) -> str:
         relative_path = file_path.relative_to(repository)
         path_components = list(relative_path.parts[:-1])
         path_components.append(relative_path.stem)
         return " ".join(c.replace("_", " ") for c in path_components)
 
+    @functools.lru_cache
+    def _concatenate_breadcrumbs(self, text: str, breadcrumbs: str) -> str:
+        return breadcrumbs + "\n" + text
+
     def _process_core(self, item: Chunk) -> Chunk:
         breadcrumbs = self._generate_breadcrumbs(
             Path(item.file_path), item.repository
         )
-        item.text = breadcrumbs + "\n" + item.text
+        item.text = self._concatenate_breadcrumbs(item.text, breadcrumbs)
         return item
 
 
-# class LemmatizationProcessor(TextProcessor):
-#     def __init__(self, tui: TUI) -> None:
-#         super().__init__(tui)
-#         self._nlp = spacy.load("en_core_web_sm", disable=["parser", "ner"])
-#
-#     def _process_core(self, item: str) -> str:
-#         return self._lemmatize(item)
-#
-#     def _lemmatize(self, item: str) -> str:
-#         doc = self._nlp(item)
-#         return " ".join([token.lemma_ for token in doc])
+class LemmatizationProcessor(TextProcessor):
+    def __init__(self, tui: TUI) -> None:
+        super().__init__(tui)
+        self._nlp = spacy.load("en_core_web_sm", disable=["parser", "ner"])
+
+    @functools.lru_cache
+    def _process_str(self, item: str) -> str:
+        return item + "\n" + self._lemmatize(item)
+
+    def _lemmatize(self, item: str) -> str:
+        doc = self._nlp(item)
+        return " ".join([token.lemma_ for token in doc])
+
+
 #
 #
 # class LowerCasingProcessor(TextProcessor):

@@ -7,16 +7,14 @@ from rag.text_processing.text_type import TextType
 from rag.tui import TUI
 
 
-class ProcessingPipelineFactory(Generic[TextType]):
+class TextProcessingPipelineFactory(Generic[TextType]):
     def __init__(
         self, config: TextProcessingConfig[TextType], tui: TUI
     ) -> None:
-        self._config = config
+        self._config: TextProcessingConfig[TextType] = config
         self._tui = tui
 
     def create(self, file_type: FileType) -> TextProcessingPipeline[TextType]:
-        text_processor_factories = self._config.processors[file_type]
-        text_processors = [
-            factory(self._tui) for factory in text_processor_factories
-        ]
-        return TextProcessingPipeline(text_processors)
+        text_processor_classes = self._config.processors_for(file_type)
+        text_processors = [cls(self._tui) for cls in text_processor_classes]
+        return TextProcessingPipeline(text_processors, self._tui)

@@ -7,7 +7,6 @@ from rag.config.indexing_config import IndexingConfig
 from rag.indexing.indexing_processor import IndexingProcessor
 from rag.models.chunk import Chunk, FileType
 from rag.models.indexing_method import IndexingMethod
-from rag.text_processing.pipeline_factory import ProcessingPipelineFactory
 from rag.tui import TUI
 from rag.utils.files_manager import FilesManager
 
@@ -30,20 +29,12 @@ class BM25IndexingProcessor(IndexingProcessor):
         super().__init__(chunks, tui, config)
         self._config: BM25Configuration
 
-    def index_corpus(self, save_directory: str, file_type: FileType) -> None:
-        """Indexes the text chunks using BM25 and saves the index to disk.
-
-        Args:
-            save_directory: The directory path where the BM25 index files
-                should be saved.
-        """
-        self._ui.print(f"Indexing {file_type}...")
-        chunks = [chunk for chunk in self._chunks if chunk.type == file_type]
-        chunks_processing_pipeline = ProcessingPipelineFactory(
-            self._config.text_processing, self._ui
-        )
-        text_processing_pipeline = chunks_processing_pipeline.create(file_type)
-        processed_chunks = text_processing_pipeline.process_list(chunks)
+    def _index_and_save(
+        self,
+        processed_chunks: list[Chunk],
+        save_directory: str,
+        file_type: FileType,
+    ) -> str:
         texts = [chunk.text for chunk in processed_chunks]
         corpus = bm25s.tokenize(texts)
         retriever = bm25s.BM25(**self._config.bm25_settings.model_dump())
@@ -53,7 +44,7 @@ class BM25IndexingProcessor(IndexingProcessor):
         )
         retriever.save(
             save_path,
-            corpus=[c.model_dump() for c in chunks],
+            corpus=[c.model_dump() for c in processed_chunks],
             show_progress=False,
         )
-        self._ui.print(f"Ingestion complete! Indices saved under {save_path}")
+        return save_path

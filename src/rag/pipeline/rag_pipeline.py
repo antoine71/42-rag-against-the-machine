@@ -7,7 +7,7 @@ from rag.config.chunking_config import ChunkingConfig
 from rag.config.llm import LLMConfig
 from rag.evaluation.evaluation_processor import EvaluationProcessor
 from rag.indexing.files_repository_scanner import FilesRepositoryScanner
-from rag.indexing.indexing_manager import IndexingManager
+from rag.indexing.indexing_pipeline import IndexingPipeline
 from rag.indexing.indexing_processor_factory import IndexingProcessorFactory
 from rag.llm.llm_chat_processor import LLMChatProcessor
 from rag.llm.llm_manager import LLMManager
@@ -26,7 +26,7 @@ from rag.models.search_result import (
     MinimalAnswer,
     StudentSearchResultsAndAnswer,
 )
-from rag.retrieving.retrieving_manager import RetrievingManager
+from rag.retrieving.retrieving_pipeline import RetrievingPipeline
 from rag.retrieving.retrieving_processor_factory import (
     RetrievingProcessorFactory,
 )
@@ -55,7 +55,7 @@ class RAGPipeline:
         repository: str = "data/raw/vllm-0.10.1",
         save_directory: str = "data/processed/",
         indexing_method: IndexingMethod = IndexingMethod.BM25,
-        file_type: str | None = None,
+        file_type: str = "all",
     ) -> None:
         """Scans the repository, chunks files, and builds a searchable index.
 
@@ -80,8 +80,8 @@ class RAGPipeline:
         indexing_processors = IndexingProcessorFactory.create(
             indexing_method, chunks, self._tui
         )
-        indexing_manager = IndexingManager(indexing_processors)
-        indexing_manager.process(save_directory, FileType(file_type))
+        indexing_pipeline = IndexingPipeline(indexing_processors)
+        indexing_pipeline.process(save_directory, FileType(file_type))
 
     @validate_with(Search)
     def search(
@@ -89,7 +89,7 @@ class RAGPipeline:
         query: str,
         index_directory: str = "data/processed",
         indexing_method: str = "bm25",
-        file_type: str = "documentation",
+        file_type: str | None = None,
         k: int = 10,
     ) -> None:
         """Searches the knowledge base for a single query and prints top
@@ -106,13 +106,14 @@ class RAGPipeline:
             IndexingMethod(indexing_method),
             index_directory,
             self._tui,
-            FileType(file_type),
         )
-        retrieving_manager = RetrievingManager(retrievers)
+        retrieving_pipeline = RetrievingPipeline(retrievers)
         question = UnansweredQuestion(
             question_id=str(uuid.uuid4()), question=query
         )
-        results = retrieving_manager.process([question], k)
+        results = retrieving_pipeline.process(
+            [question], k, FileType(file_type)
+        )
         self._tui.print(results.model_dump_json(indent=4))
 
     @validate_with(SearchDataset)
@@ -120,7 +121,7 @@ class RAGPipeline:
         self,
         dataset_path: str = (
             "datasets_public/public/UnansweredQuestions"
-            "/dataset_code_public.json"
+            "/dataset_docs_public.json"
         ),
         index_directory: str = "data/processed",
         save_directory: str = "data/output/search_results",
@@ -148,8 +149,8 @@ class RAGPipeline:
             index_directory,
             self._tui,
         )
-        retrieving_manager = RetrievingManager(retrievers)
-        results = retrieving_manager.process(
+        retrieving_pipeline = RetrievingPipeline(retrievers)
+        results = retrieving_pipeline.process(
             dataset.rag_questions, k, FileType(file_type)
         )
         save_file_name = Path(dataset_path).name
@@ -181,13 +182,14 @@ class RAGPipeline:
             IndexingMethod(indexing_method),
             index_directory,
             self._tui,
-            FileType(file_type),
         )
-        retrieving_manager = RetrievingManager(retrievers)
+        retrieving_pipeline = RetrievingPipeline(retrievers)
         question = UnansweredQuestion(
             question_id=str(uuid.uuid4()), question=query
         )
-        results = retrieving_manager.process([question], k)
+        results = retrieving_pipeline.process(
+            [question], k, FileType(file_type)
+        )
         llm_manager = LLMManager(self._tui, LLMConfig())
         chat_processor = LLMChatProcessor(self._files_manager, k, llm_manager)
         outputs = chat_processor.answer_queries(list(results.search_results))
@@ -206,7 +208,7 @@ class RAGPipeline:
     def answer_dataset(
         self,
         student_search_result_path: str = (
-            "data/output/search_results/dataset_code_public.json"
+            "data/output/search_results/dataset_docs_public.json"
         ),
         save_directory: str = "data/output/search_result_and_answer",
         k: int = 10,
@@ -247,10 +249,10 @@ class RAGPipeline:
     def evaluate(
         self,
         student_answer_path: str = (
-            "data/output/search_results/dataset_code_public.json"
+            "data/output/search_results/dataset_docs_public.json"
         ),
         dataset_path: str = (
-            "datasets_public/public/AnsweredQuestions/dataset_code_public.json"
+            "datasets_public/public/AnsweredQuestions/dataset_docs_public.json"
         ),
     ) -> None:
         """Evaluate student search results against the answered questions

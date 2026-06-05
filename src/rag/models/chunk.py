@@ -12,6 +12,7 @@ class FileType(str, Enum):
 
     CODE = "code"
     DOCUMENTATION = "documentation"
+    ALL = "all"
 
     @classmethod
     def from_file(cls, file: Path) -> "FileType":

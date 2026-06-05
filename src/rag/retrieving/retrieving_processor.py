@@ -1,9 +1,11 @@
 from abc import ABC, abstractmethod
+from typing import Any, Mapping
 
 from rag.config.retrieving_config import RetrievingConfig
 from rag.models.chunk import FileType
 from rag.models.question import UnansweredQuestion
-from rag.models.search_result import StudentSearchResults
+from rag.models.search_result import MinimalSearchResults, StudentSearchResults
+from rag.text_processing.pipeline_factory import TextProcessingPipelineFactory
 from rag.tui import TUI
 
 
@@ -25,7 +27,20 @@ class RetrievingProcessor(ABC):
         self._tui = tui
         self._config = config
 
-    @abstractmethod
+    def _queries_text_processing(
+        self, file_type: FileType, queries: list[UnansweredQuestion]
+    ) -> list[str]:
+        query_processing_pipeline_factory = TextProcessingPipelineFactory(
+            self._config.query_processing, self._tui
+        )
+        query_processing_pipeline = query_processing_pipeline_factory.create(
+            file_type
+        )
+        processed_queries = query_processing_pipeline.process_list(
+            [query.question for query in queries]
+        )
+        return processed_queries
+
     def retrieve(
         self, queries: list[UnansweredQuestion], k: int, file_type: FileType
     ) -> StudentSearchResults:
@@ -40,4 +55,16 @@ class RetrievingProcessor(ABC):
             A StudentSearchResults object containing retrieved sources for each
                 query.
         """
-        ...
+        self._tui.print(f"Retrieving {file_type} with {self._config.TYPE}...")
+        processed_queries = self._queries_text_processing(file_type, queries)
+        results = self._load_and_retrieve(file_type, processed_queries, k)
+        search_result = [
+            MinimalSearchResults.from_query_and_sources(query, sources)
+            for query, sources in zip(queries, results)
+        ]
+        return StudentSearchResults(search_results=search_result, k=k)
+
+    @abstractmethod
+    def _load_and_retrieve(
+        self, file_type: FileType, processed_queries: list[str], k: int
+    ) -> list[list[Mapping[str, Any]]]: ...

@@ -30,17 +30,14 @@ class VectorEmbeddingProcessor(IndexingProcessor):
         self._config: EmbeddingConfig
         self._embedder = SentenceTransformer(config.model)
 
-    def index_corpus(self, save_directory: str, file_type: FileType) -> None:
-        """Encodes text chunks in batch and saves the resulting embeddings.
-
-        Args:
-            save_directory: The directory path where ChromaDB database files
-                should be stored.
-        """
-        self._ui.print(f"Indexing {file_type} files...")
-        chunks = [chunk for chunk in self._chunks if chunk.type == file_type]
-        texts = [chunk.text for chunk in chunks]
-        metadatas = [chunk.metadata for chunk in chunks]
+    def _index_and_save(
+        self,
+        processed_chunks: list[Chunk],
+        save_directory: str,
+        file_type: FileType,
+    ) -> str:
+        texts = [chunk.text for chunk in processed_chunks]
+        metadatas = [chunk.metadata for chunk in processed_chunks]
         corpus_embeddings = self._embedder.encode_document(
             texts,
             show_progress_bar=True,
@@ -67,8 +64,8 @@ class VectorEmbeddingProcessor(IndexingProcessor):
         batched_metadatas = batched(
             metadatas, self._config.chromadb_batch_size
         )
-        with self._ui.progress(
-            "Saving to database", len(chunks), "chunk"
+        with self._tui.progress(
+            "Saving to database", len(processed_chunks), "chunk"
         ) as progress:
             while True:
                 try:
@@ -83,4 +80,4 @@ class VectorEmbeddingProcessor(IndexingProcessor):
                     progress.update(batch_size)
                 except StopIteration:
                     break
-        self._ui.print(f"Ingestion complete! Indices saved under {save_path}")
+        return save_path
