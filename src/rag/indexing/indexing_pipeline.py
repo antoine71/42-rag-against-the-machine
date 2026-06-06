@@ -1,5 +1,5 @@
 from rag.indexing.indexing_processor import IndexingProcessor
-from rag.models.chunk import FileType
+from rag.models.file_category import FileCategory
 
 
 class IndexingPipeline:
@@ -15,14 +15,14 @@ class IndexingPipeline:
         """
         self._indexing_processors = indexing_processors
 
-    def process(self, save_directory: str, file_type: str | None) -> None:
+    def process(
+        self, save_directory: str, files_category: FileCategory
+    ) -> None:
         """Executes indexing on all registered indexing processors.
 
         Args:
             save_directory: The directory path where index data should be
                 saved.
         """
-        file_types = (file_type,) if file_type is not None else FileType
         for processor in self._indexing_processors:
-            for t in file_types:
-                processor.index_corpus(save_directory, FileType(t))
+            processor.index_corpus(save_directory, files_category)

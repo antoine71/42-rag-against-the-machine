@@ -5,7 +5,7 @@ from typing import Literal, overload
 from pydantic import ValidationError
 
 from rag.exceptions import RAGException
-from rag.models.chunk import FileType
+from rag.models.file_category import FileCategory
 from rag.models.indexing_method import IndexingMethod
 from rag.models.minimal_source import MinimalSource
 from rag.models.question import AnsweredQuestion, UnansweredQuestion
@@ -164,8 +164,8 @@ class FilesManager:
     def get_indexing_directory(
         save_directory: str,
         indexing_method: IndexingMethod,
-        file_type: FileType,
+        file_category: FileCategory,
     ) -> str:
         return str(
-            Path(save_directory) / indexing_method.value / file_type.value
+            Path(save_directory) / indexing_method.value / file_category.value
         )

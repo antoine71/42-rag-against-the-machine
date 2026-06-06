@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from typing import Any, Mapping
 
 from rag.config.retrieving_config import RetrievingConfig
-from rag.models.chunk import FileType
+from rag.models.file_category import FileCategory
 from rag.models.question import UnansweredQuestion
 from rag.models.search_result import MinimalSearchResults, StudentSearchResults
 from rag.text_processing.pipeline_factory import TextProcessingPipelineFactory
@@ -28,7 +28,7 @@ class RetrievingProcessor(ABC):
         self._config = config
 
     def _queries_text_processing(
-        self, file_type: FileType, queries: list[UnansweredQuestion]
+        self, file_type: FileCategory, queries: list[UnansweredQuestion]
     ) -> list[str]:
         query_processing_pipeline_factory = TextProcessingPipelineFactory(
             self._config.query_processing, self._tui
@@ -42,7 +42,10 @@ class RetrievingProcessor(ABC):
         return processed_queries
 
     def retrieve(
-        self, queries: list[UnansweredQuestion], k: int, file_type: FileType
+        self,
+        queries: list[UnansweredQuestion],
+        k: int,
+        file_type: FileCategory,
     ) -> StudentSearchResults:
         """Retrieves top-k most relevant sources for the given queries.
 
@@ -66,5 +69,5 @@ class RetrievingProcessor(ABC):
 
     @abstractmethod
     def _load_and_retrieve(
-        self, file_type: FileType, processed_queries: list[str], k: int
+        self, file_type: FileCategory, processed_queries: list[str], k: int
     ) -> list[list[Mapping[str, Any]]]: ...

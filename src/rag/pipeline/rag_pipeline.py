@@ -11,7 +11,6 @@ from rag.indexing.indexing_pipeline import IndexingPipeline
 from rag.indexing.indexing_processor_factory import IndexingProcessorFactory
 from rag.llm.llm_chat_processor import LLMChatProcessor
 from rag.llm.llm_manager import LLMManager
-from rag.models.chunk import FileType
 from rag.models.cli_models import (
     Answer,
     AnswerDataset,
@@ -20,6 +19,7 @@ from rag.models.cli_models import (
     Search,
     SearchDataset,
 )
+from rag.models.file_category import FileCategory
 from rag.models.indexing_method import IndexingMethod
 from rag.models.question import UnansweredQuestion
 from rag.models.search_result import (
@@ -55,7 +55,7 @@ class RAGPipeline:
         repository: str = "data/raw/vllm-0.10.1",
         save_directory: str = "data/processed/",
         indexing_method: IndexingMethod = IndexingMethod.BM25,
-        file_type: str = "all",
+        files_category: str = "all",
     ) -> None:
         """Scans the repository, chunks files, and builds a searchable index.
 
@@ -67,8 +67,10 @@ class RAGPipeline:
             indexing_method: The indexing strategy to use (
                 'bm25', 'vector', or 'hybrid').
         """
-        files = FilesRepositoryScanner(repository).list_files()
-        self._tui.print(f"Found {len(files)} files from '{repository}'.")
+        files_category = FileCategory(files_category)
+        files = FilesRepositoryScanner(Path(repository), self._tui).list_files(
+            files_category
+        )
 
         chunking_config = ChunkingConfig(chunk_size=max_chunk_size)
         chunking_manager = ChunkingManager(
@@ -81,7 +83,7 @@ class RAGPipeline:
             indexing_method, chunks, self._tui
         )
         indexing_pipeline = IndexingPipeline(indexing_processors)
-        indexing_pipeline.process(save_directory, FileType(file_type))
+        indexing_pipeline.process(save_directory, files_category)
 
     @validate_with(Search)
     def search(
@@ -89,7 +91,7 @@ class RAGPipeline:
         query: str,
         index_directory: str = "data/processed",
         indexing_method: str = "bm25",
-        file_type: str | None = None,
+        file_type: str = "documentation",
         k: int = 10,
     ) -> None:
         """Searches the knowledge base for a single query and prints top
@@ -112,7 +114,7 @@ class RAGPipeline:
             question_id=str(uuid.uuid4()), question=query
         )
         results = retrieving_pipeline.process(
-            [question], k, FileType(file_type)
+            [question], k, FileCategory(file_type)
         )
         self._tui.print(results.model_dump_json(indent=4))
 
@@ -126,7 +128,7 @@ class RAGPipeline:
         index_directory: str = "data/processed",
         save_directory: str = "data/output/search_results",
         indexing_method: str = "bm25",
-        file_type: str = "documentation",
+        files_category: str = "documentation",
         k: int = 10,
     ) -> None:
         """Processes queries from a JSON dataset and saves search results.
@@ -151,7 +153,7 @@ class RAGPipeline:
         )
         retrieving_pipeline = RetrievingPipeline(retrievers)
         results = retrieving_pipeline.process(
-            dataset.rag_questions, k, FileType(file_type)
+            dataset.rag_questions, k, FileCategory(files_category)
         )
         save_file_name = Path(dataset_path).name
         save_file_path_obj = Path(save_directory) / save_file_name
@@ -166,7 +168,7 @@ class RAGPipeline:
         query: str,
         index_directory: str = "data/processed",
         indexing_method: str = "bm25",
-        file_type: str = "documentation",
+        files_category: str = "documentation",
         k: int = 10,
     ) -> None:
         """Retrieves context and generates a natural answer for a single query.
@@ -188,7 +190,7 @@ class RAGPipeline:
             question_id=str(uuid.uuid4()), question=query
         )
         results = retrieving_pipeline.process(
-            [question], k, FileType(file_type)
+            [question], k, FileCategory(files_category)
         )
         llm_manager = LLMManager(self._tui, LLMConfig())
         chat_processor = LLMChatProcessor(self._files_manager, k, llm_manager)

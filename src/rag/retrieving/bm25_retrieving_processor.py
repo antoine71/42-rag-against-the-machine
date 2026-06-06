@@ -3,7 +3,7 @@ from typing import Any, Mapping
 import bm25s
 
 from rag.config.bm25_config import BM25Configuration
-from rag.models.chunk import FileType
+from rag.models.file_category import FileCategory
 from rag.models.indexing_method import IndexingMethod
 from rag.retrieving.retrieving_processor import RetrievingProcessor
 from rag.tui import TUI
@@ -29,7 +29,7 @@ class BM25RetrievingProcessor(RetrievingProcessor):
         self._config: BM25Configuration
 
     def _load_and_retrieve(
-        self, file_type: FileType, processed_queries: list[str], k: int
+        self, file_type: FileCategory, processed_queries: list[str], k: int
     ) -> list[list[Mapping[str, Any]]]:
         chunks_index = FilesManager.get_indexing_directory(
             self._index_directory, IndexingMethod.BM25, file_type

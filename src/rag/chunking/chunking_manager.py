@@ -11,7 +11,8 @@ from langchain_text_splitters import (
 from rag.chunking.chunking_processor import ChunkingProcessor
 from rag.chunking.markdown_chunking_processor import MarkdownChunkingProcessor
 from rag.config.chunking_config import ChunkingConfig
-from rag.models.chunk import Chunk, FileType
+from rag.models.chunk import Chunk
+from rag.models.file_type import FileType
 from rag.tui import TUI
 
 logger = logging.getLogger(__name__)
@@ -57,7 +58,7 @@ class ChunkingManager:
                 metadata={
                     "file_path": str(file),
                     "file_name": file.name,
-                    "type": FileType.from_file(file),
+                    "type": FileType.from_suffix(file.suffix),
                     "repository": self._repository,
                 },
             )

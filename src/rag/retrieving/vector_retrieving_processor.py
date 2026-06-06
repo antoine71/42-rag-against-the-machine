@@ -6,7 +6,7 @@ from sentence_transformers import SentenceTransformer
 from sentence_transformers.util import dot_score, semantic_search
 
 from rag.config.embedding import EmbeddingConfig
-from rag.models.chunk import FileType
+from rag.models.file_category import FileCategory
 from rag.models.indexing_method import IndexingMethod
 from rag.retrieving.retrieving_processor import RetrievingProcessor
 from rag.tui import TUI
@@ -32,7 +32,7 @@ class VectorRetrievingProcessor(RetrievingProcessor):
         self._embedder = SentenceTransformer(self._config.model)
 
     def _load_and_retrieve(
-        self, file_type: FileType, processed_queries: list[str], k: int
+        self, file_type: FileCategory, processed_queries: list[str], k: int
     ) -> list[list[Mapping[str, Any]]]:
         store = chromadb.PersistentClient(
             FilesManager.get_indexing_directory(

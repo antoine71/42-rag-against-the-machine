@@ -1,5 +1,5 @@
 from rag.config.rrf import RRFConfig
-from rag.models.chunk import FileType
+from rag.models.file_category import FileCategory
 from rag.models.question import UnansweredQuestion
 from rag.models.search_result import MinimalSearchResults, StudentSearchResults
 from rag.retrieving.retrieving_processor import RetrievingProcessor
@@ -27,7 +27,10 @@ class RetrievingPipeline:
         self._rrf_config = RRFConfig()
 
     def process(
-        self, queries: list[UnansweredQuestion], k: int, file_type: FileType
+        self,
+        queries: list[UnansweredQuestion],
+        k: int,
+        file_type: FileCategory,
     ) -> StudentSearchResults:
         """Processes queries using the configured retrieving processors.
 
@@ -43,7 +46,10 @@ class RetrievingPipeline:
         return self._multiple_retrieving(queries, k, file_type)
 
     def _multiple_retrieving(
-        self, queries: list[UnansweredQuestion], k: int, file_type: FileType
+        self,
+        queries: list[UnansweredQuestion],
+        k: int,
+        file_type: FileCategory,
     ) -> StudentSearchResults:
         """Retrieves and reranks results from multiple retrieving processors
         using RRF.
@@ -70,7 +76,10 @@ class RetrievingPipeline:
         return reranked_result
 
     def _simple_retrieving(
-        self, queries: list[UnansweredQuestion], k: int, file_type: FileType
+        self,
+        queries: list[UnansweredQuestion],
+        k: int,
+        file_type: FileCategory,
     ) -> StudentSearchResults:
         """Retrieves results using the single configured retrieving processor.
 

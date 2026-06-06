@@ -1,28 +1,8 @@
-from enum import Enum
-from pathlib import Path
-
 from langchain_core.documents import Document
 from pydantic import BaseModel
 
+from rag.models.file_type import FileType
 from rag.models.minimal_source import MinimalSource
-
-
-class FileType(str, Enum):
-    """Enum representing supported repository file types."""
-
-    CODE = "code"
-    DOCUMENTATION = "documentation"
-    ALL = "all"
-
-    @classmethod
-    def from_file(cls, file: Path) -> "FileType":
-        """Returns the FileType enum value for a given file path."""
-        match file.suffix:
-            case ".py":
-                return cls.CODE
-            case ".md" | ".txt":
-                return cls.DOCUMENTATION
-        raise ValueError(f"Invalid file suffix '{file.suffix}'")
 
 
 class Chunk(BaseModel):

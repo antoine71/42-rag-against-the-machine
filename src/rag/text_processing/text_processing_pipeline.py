@@ -15,11 +15,10 @@ class TextProcessingPipeline(Generic[TextType]):
         self._tui = tui
 
     def process_list(self, texts: list[TextType]) -> list[TextType]:
-        if self._processing_stages:
-            stages = " > ".join(
-                stage.__class__.__name__ for stage in self._processing_stages
-            )
-            self._tui.print(f"Running Text Processing Pipeline: {stages}")
         for processing_stage in self._processing_stages:
             texts = processing_stage.process_list(texts)
         return texts
+
+    @property
+    def stages(self) -> list[TextProcessor[TextType]]:
+        return self._processing_stages

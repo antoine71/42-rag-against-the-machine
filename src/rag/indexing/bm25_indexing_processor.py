@@ -5,7 +5,8 @@ import bm25s
 from rag.config.bm25_config import BM25Configuration
 from rag.config.indexing_config import IndexingConfig
 from rag.indexing.indexing_processor import IndexingProcessor
-from rag.models.chunk import Chunk, FileType
+from rag.models.chunk import Chunk
+from rag.models.file_category import FileCategory
 from rag.models.indexing_method import IndexingMethod
 from rag.tui import TUI
 from rag.utils.files_manager import FilesManager
@@ -33,7 +34,7 @@ class BM25IndexingProcessor(IndexingProcessor):
         self,
         processed_chunks: list[Chunk],
         save_directory: str,
-        file_type: FileType,
+        file_type: FileCategory,
     ) -> str:
         texts = [chunk.text for chunk in processed_chunks]
         corpus = bm25s.tokenize(texts)
