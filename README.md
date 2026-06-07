@@ -7,7 +7,7 @@
     <img src="https://img.shields.io/badge/Python-3.10-3776AB?logo=python&logoColor=white" />
   </a>
   <a href="https://github.com/antoine71/42-rag-against-the-machine/actions/workflows/python-app.yml">
-    <img src="https://github.com/antoine71/42-rag-against-the-machine/actions/workflows/python-app.yml/badge.svg?branch=main&event=push" />
+    <img src="https://github.com/antoine71/42-rag-against-the-machine/actions/workflows/python-app.yml/badge.svg?branch=main" />
   </a>
 </p>
 
