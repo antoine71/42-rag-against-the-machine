@@ -9,6 +9,8 @@ from rag.models.file_type import FileType
 
 
 class IndexingConfig(ABC, BaseSettings):
+    """Base configuration shared by indexing processors."""
+
     TYPE: ClassVar[str]
 
     text_processing: TextProcessingConfig[FileType, Chunk]

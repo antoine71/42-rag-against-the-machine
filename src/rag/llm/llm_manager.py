@@ -18,6 +18,8 @@ ChatMessages = list[list[dict[str, str]]]
 
 
 class LLMChatProcessorError(RAGException):
+    """Exception raised when LLM loading or generation fails."""
+
     pass
 
 
@@ -71,6 +73,7 @@ class LLMManager:
 
         Args:
             queries: A list of formatted chat conversation messages.
+            description: Progress bar description.
 
         Returns:
             A list of answer strings from the LLM.

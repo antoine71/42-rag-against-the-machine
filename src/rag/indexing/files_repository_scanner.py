@@ -59,6 +59,14 @@ class FilesRepositoryScanner:
         return data_files
 
     def _count_files(self, data_files: list[Path]) -> str:
+        """Counts files by concrete file type.
+
+        Args:
+            data_files: Files discovered in the repository.
+
+        Returns:
+            Human-readable counts grouped by file type.
+        """
         count: dict[FileType, int] = defaultdict(int)
         for file in data_files:
             count[FileType.from_suffix(file.suffix)] += 1

@@ -67,6 +67,8 @@ class RAGPipeline:
                 saved.
             indexing_method: The indexing strategy to use (
                 'bm25', 'vector', or 'hybrid').
+            files_category: File category to index ('code', 'documentation',
+                or 'all').
         """
         self._tui.print_title("indexing", ("dataset", repository))
         files_category = FileCategory(files_category)
@@ -105,8 +107,10 @@ class RAGPipeline:
         Args:
             query: The search query string.
             index_directory: The directory containing index files.
-            retrieving_method: The retrieval strategy to use (
+            indexing_method: The retrieval strategy to use (
                 'bm25', 'vector', or 'hybrid').
+            files_category: File category to retrieve from ('code',
+                'documentation', or 'all').
             k: Number of top results to retrieve.
         """
         files_category = FileCategory(files_category)
@@ -147,8 +151,10 @@ class RAGPipeline:
             index_directory: The directory containing index files.
             save_directory: The directory where search results should be
                 saved.
-            retrieving_method: The retrieval strategy to use (
+            indexing_method: The retrieval strategy to use (
                 'bm25', 'vector', or 'hybrid').
+            files_category: File category to retrieve from ('code',
+                'documentation', or 'all').
             k: Number of top results to retrieve per query.
         """
         indexing_method = IndexingMethod(indexing_method)
@@ -186,8 +192,10 @@ class RAGPipeline:
         Args:
             query: The user query string.
             index_directory: The directory containing index files.
-            retrieving_method: The retrieval strategy to use (
+            indexing_method: The retrieval strategy to use (
                 'bm25', 'vector', or 'hybrid').
+            files_category: File category to retrieve from ('code',
+                'documentation', or 'all').
             k: Number of top results to retrieve as context.
         """
         self._tui.print_title("answer")

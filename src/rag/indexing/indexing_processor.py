@@ -46,12 +46,28 @@ class IndexingProcessor(ABC):
     def _run_text_processing(
         self, files_category: FileCategory
     ) -> list[Chunk]:
+        """Runs text processing for all file types in a category.
+
+        Args:
+            files_category: File category being indexed.
+
+        Returns:
+            Processed chunks for the category.
+        """
         processed_chunks: list[Chunk] = []
         for file_type in files_category.file_types:
             processed_chunks.extend(self._process_chunks(file_type))
         return processed_chunks
 
     def _process_chunks(self, file_type: FileType) -> list[Chunk]:
+        """Runs the configured text processors for a file type.
+
+        Args:
+            file_type: Concrete file type to process.
+
+        Returns:
+            Processed chunks for the file type.
+        """
         chunks = [chunk for chunk in self._chunks if file_type == chunk.type]
         chunks_processing_pipeline = TextProcessingPipelineFactory(
             self._config.text_processing, self._tui
@@ -74,4 +90,15 @@ class IndexingProcessor(ABC):
         processed_chunks: list[Chunk],
         save_directory: str,
         file_type: FileCategory,
-    ) -> str: ...
+    ) -> str:
+        """Indexes processed chunks and persists backend data.
+
+        Args:
+            processed_chunks: Chunks after text processing.
+            save_directory: Root directory where index data is saved.
+            file_type: File category represented by the index.
+
+        Returns:
+            Path where backend data was saved.
+        """
+        ...

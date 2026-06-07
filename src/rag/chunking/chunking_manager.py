@@ -19,6 +19,8 @@ logger = logging.getLogger(__name__)
 
 
 class ChunkingManager:
+    """Splits repository files into typed text chunks."""
+
     def __init__(
         self,
         config: ChunkingConfig,
@@ -26,6 +28,14 @@ class ChunkingManager:
         tui: TUI,
         repository: str,
     ) -> None:
+        """Initializes splitters for supported file types.
+
+        Args:
+            config: Chunking configuration.
+            files: Files to split into chunks.
+            tui: Terminal UI used for progress output.
+            repository: Repository root path used in chunk metadata.
+        """
         self._files = files
         self._tui = tui
         self._config = config
@@ -51,6 +61,11 @@ class ChunkingManager:
         )
 
     def _documents_generator(self) -> Generator[Document]:
+        """Yields LangChain documents with source metadata.
+
+        Yields:
+            Documents built from repository files.
+        """
         logger.debug(f"Splitting files: '{self._files}'")
         for file in self._files:
             yield Document(
@@ -66,6 +81,15 @@ class ChunkingManager:
     def _split_documents(
         self, doc_type: str, splitter: ChunkingProcessor
     ) -> list[Document]:
+        """Splits documents matching a specific suffix.
+
+        Args:
+            doc_type: File suffix to select, including the leading dot.
+            splitter: Splitter used for matching documents.
+
+        Returns:
+            Split documents produced by the splitter.
+        """
         documents = [
             doc
             for doc in self._documents_generator()
@@ -75,6 +99,11 @@ class ChunkingManager:
         return split
 
     def split(self) -> list[Chunk]:
+        """Splits all configured files into chunks.
+
+        Returns:
+            Repository chunks for supported file types.
+        """
         chunks = list(
             itertools.chain(
                 self._split_documents(".py", self._python_splitter),

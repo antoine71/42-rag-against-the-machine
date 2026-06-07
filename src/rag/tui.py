@@ -15,16 +15,14 @@ class TUI:
     WIDTH = 100
 
     def __init__(self) -> None:
+        """Initializes the terminal UI helper."""
         pass
 
     def print_evaluation_results(self, evaluation: RecallEvaluation) -> None:
-        """Formats the evaluation scores into a readable string.
+        """Prints evaluation scores as a readable terminal report.
 
         Args:
-            evaluation: The RecallEvaluation object containing the scores.
-
-        Returns:
-            A formatted multi-line string with the evaluation metrics.
+            evaluation: Evaluation metrics and dataset validity counters.
         """
         padding = int(self.WIDTH // (3 / 2))
         data = [
@@ -81,12 +79,26 @@ class TUI:
             pbar.close()
 
     def _format_subtitle(self, subtitle: tuple[str, str | int]) -> str:
+        """Formats a title subtitle key-value pair.
+
+        Args:
+            subtitle: Pair containing the subtitle label and value.
+
+        Returns:
+            The formatted subtitle line.
+        """
         title, value = subtitle
         return f"{title:<{self.WIDTH // 5}}{value:>{4 * self.WIDTH // 5}}"
 
     def print_title(
         self, rag_step: str, *subtitles: tuple[str, str | int]
     ) -> None:
+        """Prints a section title for a RAG pipeline step.
+
+        Args:
+            rag_step: Name of the current RAG step.
+            *subtitles: Optional subtitle key-value pairs to display.
+        """
         bar = self.WIDTH * "="
         title = f"RAG {rag_step.upper()}"
         formatted_subtitles = [
@@ -100,6 +112,11 @@ class TUI:
         print()
 
     def print_phase_title(self, phase_title: str) -> None:
+        """Prints the title of an execution phase.
+
+        Args:
+            phase_title: Human-readable phase name.
+        """
         title = f"{phase_title}"
         bar = self.WIDTH * "-"
         print(title)
@@ -114,6 +131,16 @@ class TUI:
         new_line_before: bool = False,
         new_line_after: bool = False,
     ) -> None:
+        """Prints a one-line task completion report.
+
+        Args:
+            title: Name of the completed task.
+            delta_time_ms: Elapsed task time in milliseconds.
+            unit: Unit name associated with the count.
+            data: Count to display for the task.
+            new_line_before: Whether to print a blank line before the report.
+            new_line_after: Whether to print a blank line after the report.
+        """
         task_display = f"✓ {title.capitalize()} completed"
         value = f"{data} {unit}"
         total_secondes = delta_time_ms / 1000
@@ -134,13 +161,28 @@ class TUI:
             self.new_line()
 
     def new_line(self) -> None:
+        """Prints a blank line."""
         print()
 
     def _format_summary_data(self, data: tuple[str, str]) -> str:
+        """Formats a summary key-value pair.
+
+        Args:
+            data: Pair containing the summary label and value.
+
+        Returns:
+            The formatted summary line.
+        """
         key, value = data
         return f"{key:<{self.WIDTH // 2}{value}}"
 
     def print_summary(self, duration: int, *data: tuple[str, str]) -> None:
+        """Prints a final execution summary.
+
+        Args:
+            duration: Total execution duration in milliseconds.
+            *data: Summary key-value pairs to display.
+        """
         bar = self.WIDTH * "="
         title = "SUMMARY"
         formatted_data = [self._format_summary_data(d) for d in data]

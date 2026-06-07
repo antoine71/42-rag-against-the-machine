@@ -32,6 +32,16 @@ class BM25RetrievingProcessor(RetrievingProcessor):
     def _load_and_retrieve(
         self, file_type: FileCategory, processed_queries: list[str], k: int
     ) -> list[list[Mapping[str, Any]]]:
+        """Loads a BM25 index and retrieves source metadata.
+
+        Args:
+            file_type: File category to retrieve from.
+            processed_queries: Tokenizable query strings.
+            k: Number of sources to retrieve per query.
+
+        Returns:
+            Retrieved source metadata for each query.
+        """
         chunks_index = FilesManager.get_indexing_directory(
             self._index_directory, IndexingMethod.BM25, file_type
         )

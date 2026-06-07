@@ -19,11 +19,12 @@ class RetrievingPipeline:
     def __init__(
         self, retrieving_processors: list[RetrievingProcessor], tui: TUI
     ) -> None:
-        """Initializes the RetrievingManager.
+        """Initializes the retrieving pipeline.
 
         Args:
             retrieving_processors: A list of RetrievingProcessor instances to
                 use.
+            tui: Terminal UI used for progress output.
         """
         self._retrieving_processors = retrieving_processors
         self._rrf_config = RRFConfig()
@@ -40,6 +41,7 @@ class RetrievingPipeline:
         Args:
             queries: List of UnansweredQuestion objects.
             k: The number of top results to retrieve.
+            file_type: File category to retrieve from.
 
         Returns:
             A StudentSearchResults containing combined, ranked sources.
@@ -60,6 +62,7 @@ class RetrievingPipeline:
         Args:
             queries: List of UnansweredQuestion objects.
             k: The number of top results to retrieve.
+            file_type: File category to retrieve from.
 
         Returns:
             A reranked StudentSearchResults object.
@@ -98,6 +101,7 @@ class RetrievingPipeline:
         Args:
             queries: List of UnansweredQuestion objects.
             k: The number of top results to retrieve.
+            file_type: File category to retrieve from.
 
         Returns:
             A StudentSearchResults object.

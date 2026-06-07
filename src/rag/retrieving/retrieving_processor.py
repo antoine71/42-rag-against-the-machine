@@ -18,11 +18,12 @@ class RetrievingProcessor(ABC):
     def __init__(
         self, index_directory: str, tui: TUI, config: RetrievingConfig
     ) -> None:
-        """Initializes the VectorRetrievingProcessor.
+        """Initializes a retrieval processor.
 
         Args:
-            index_directory: Path to ChromaDB database files.
+            index_directory: Root directory containing persisted indexes.
             tui: A TUI instance to handle progress output.
+            config: Retrieval configuration for the concrete processor.
         """
         self._index_directory = index_directory
         self._tui = tui
@@ -31,6 +32,15 @@ class RetrievingProcessor(ABC):
     def _queries_text_processing(
         self, file_type: FileCategory, queries: list[UnansweredQuestion]
     ) -> list[str]:
+        """Runs query text processing for a file category.
+
+        Args:
+            file_type: File category used to select query processors.
+            queries: Raw unanswered questions.
+
+        Returns:
+            Processed query strings.
+        """
         query_processing_pipeline_factory = TextProcessingPipelineFactory(
             self._config.query_processing, self._tui
         )
@@ -62,6 +72,7 @@ class RetrievingProcessor(ABC):
             queries: A list of UnansweredQuestion objects containing the
                 search queries.
             k: The number of top results to retrieve.
+            file_type: File category to retrieve from.
 
         Returns:
             A StudentSearchResults object containing retrieved sources for each
@@ -79,4 +90,15 @@ class RetrievingProcessor(ABC):
     @abstractmethod
     def _load_and_retrieve(
         self, file_type: FileCategory, processed_queries: list[str], k: int
-    ) -> list[list[Mapping[str, Any]]]: ...
+    ) -> list[list[Mapping[str, Any]]]:
+        """Loads backend data and retrieves sources for processed queries.
+
+        Args:
+            file_type: File category to retrieve from.
+            processed_queries: Text-processed query strings.
+            k: Number of sources to retrieve per query.
+
+        Returns:
+            Retrieved source metadata for each query.
+        """
+        ...

@@ -42,6 +42,16 @@ class VectorEmbeddingProcessor(IndexingProcessor):
         save_directory: str,
         file_type: FileCategory,
     ) -> str:
+        """Embeds processed chunks and saves them in ChromaDB.
+
+        Args:
+            processed_chunks: Text-processed chunks to embed.
+            save_directory: Root directory where the vector store is saved.
+            file_type: File category represented by the vector store.
+
+        Returns:
+            Directory containing the saved ChromaDB collection.
+        """
         texts = [chunk.text for chunk in processed_chunks]
         metadatas = [chunk.metadata for chunk in processed_chunks]
         corpus_embeddings, delta = measure(

@@ -8,6 +8,8 @@ from rag.models.file_category import FileCategory
 
 
 class RetrievingConfig(ABC, BaseSettings):
+    """Base configuration shared by retrieval processors."""
+
     TYPE: ClassVar[str]
 
     query_processing: TextProcessingConfig[FileCategory, str]

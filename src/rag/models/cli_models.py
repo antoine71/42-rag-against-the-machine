@@ -8,6 +8,14 @@ from rag.models.indexing_method import IndexingMethod
 
 
 def validate_save_dir(value: str) -> str:
+    """Ensures a save directory exists before Pydantic validation.
+
+    Args:
+        value: Directory path provided by the CLI.
+
+    Returns:
+        The original directory path string.
+    """
     path = Path(value)
     if not path.exists():
         path.mkdir(parents=True)
@@ -56,7 +64,7 @@ class Answer(BaseModel):
     index_directory: DirectoryPath
     indexing_method: IndexingMethod
     files_category: FileCategory
-    k: int
+    k: Annotated[int, Field(gt=0)]
 
 
 class AnswerDataset(BaseModel):
@@ -66,7 +74,7 @@ class AnswerDataset(BaseModel):
     save_directory: Annotated[
         DirectoryPath, BeforeValidator(validate_save_dir)
     ]
-    k: int
+    k: Annotated[int, Field(gt=0)]
 
 
 class Evaluate(BaseModel):

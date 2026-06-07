@@ -25,8 +25,9 @@ class VectorRetrievingProcessor(RetrievingProcessor):
         """Initializes the VectorRetrievingProcessor.
 
         Args:
-            index_directory: Path to ChromaDB database files.
+            index_directory: Root directory containing persisted indexes.
             tui: A TUI instance to handle progress output.
+            config: Embedding configuration used for query encoding.
         """
         super().__init__(index_directory, tui, config)
         self._config: EmbeddingConfig
@@ -35,6 +36,16 @@ class VectorRetrievingProcessor(RetrievingProcessor):
     def _load_and_retrieve(
         self, file_type: FileCategory, processed_queries: list[str], k: int
     ) -> list[list[Mapping[str, Any]]]:
+        """Loads vector embeddings and retrieves source metadata.
+
+        Args:
+            file_type: File category to retrieve from.
+            processed_queries: Query strings to encode.
+            k: Number of sources to retrieve per query.
+
+        Returns:
+            Retrieved source metadata for each query.
+        """
         store = chromadb.PersistentClient(
             FilesManager.get_indexing_directory(
                 self._index_directory, IndexingMethod.VECTOR, file_type

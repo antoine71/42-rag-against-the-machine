@@ -17,6 +17,8 @@ from rag.models.search_result import (
 
 
 class FilesManagerError(RAGException):
+    """Exception raised when filesystem operations fail."""
+
     pass
 
 
@@ -127,7 +129,7 @@ class FilesManager:
             ) from e
         try:
             start = source.first_character_index
-            end = source.last_character_index + 1
+            end = source.last_character_index
             return content[start:end]
         except IndexError as e:
             raise FilesManagerError(
@@ -166,6 +168,16 @@ class FilesManager:
         indexing_method: IndexingMethod,
         file_category: FileCategory,
     ) -> str:
+        """Builds the directory path used for a persisted index.
+
+        Args:
+            save_directory: Root directory that contains persisted indexes.
+            indexing_method: Indexing backend name.
+            file_category: Indexed file category.
+
+        Returns:
+            Path to the backend/category-specific index directory.
+        """
         return str(
             Path(save_directory) / indexing_method.value / file_category.value
         )

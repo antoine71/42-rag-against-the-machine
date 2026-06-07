@@ -22,16 +22,13 @@ class RetrievingProcessorFactory:
         """Creates RetrievingProcessor instances based on method name.
 
         Args:
-            retrieving_method: The retrieval strategy to use
-                ('bm25', 'vector', or 'hybrid').
+            indexing_method: The retrieval strategy to use ('bm25', 'vector',
+                or 'hybrid').
             index_directory: Path where index and DB files are saved.
             tui: A TUI instance to handle progress output.
 
         Returns:
             A list of RetrievingProcessor instances.
-
-        Raises:
-            RAGException: If an invalid retrieving method is specified.
         """
 
         def bm25_factory() -> BM25RetrievingProcessor:

@@ -37,6 +37,16 @@ class BM25IndexingProcessor(IndexingProcessor):
         save_directory: str,
         file_type: FileCategory,
     ) -> str:
+        """Builds and saves a BM25 index for processed chunks.
+
+        Args:
+            processed_chunks: Text-processed chunks to index.
+            save_directory: Root directory where the index is saved.
+            file_type: File category represented by the index.
+
+        Returns:
+            Directory containing the saved BM25 index.
+        """
         texts = [chunk.text for chunk in processed_chunks]
         corpus = bm25s.tokenize(texts)
         retriever = bm25s.BM25(**self._config.bm25_settings.model_dump())
