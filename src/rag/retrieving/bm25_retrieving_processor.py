@@ -1,4 +1,4 @@
-from typing import Any, Mapping
+from typing import Any, Mapping, cast
 
 import bm25s
 
@@ -51,4 +51,4 @@ class BM25RetrievingProcessor(RetrievingProcessor):
             len(processed_queries),
             new_line_after=True,
         )
-        return results
+        return cast(list[list[Mapping[str, Any]]], results)

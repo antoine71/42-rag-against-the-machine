@@ -56,7 +56,6 @@ class FilesRepositoryScanner:
         logger.debug(
             f"Found {len(data_files)} files:\n {[str(f) for f in data_files]}"
         )
-        count = self._count_files(data_files)
         return data_files
 
     def _count_files(self, data_files: list[Path]) -> str:

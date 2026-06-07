@@ -5,11 +5,12 @@ import pytest
 
 from rag.indexing.files_repository_scanner import FilesRepositoryScanner
 from rag.models.file_category import FileCategory
+from rag.tui import TUI
 
 
 @pytest.fixture
 def files_repository_scanner() -> FilesRepositoryScanner:
-    return FilesRepositoryScanner(Mock(spec=Path))
+    return FilesRepositoryScanner(Mock(spec=Path), Mock(spec=TUI))
 
 
 def file_mock(suffix: str, size: int = 1, raise_error: bool = False) -> Mock:

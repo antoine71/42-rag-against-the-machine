@@ -110,7 +110,7 @@ class FilePathExpansionProcessor(TextProcessor[Chunk]):
         return item
 
 
-class LemmatizationProcessor(TextProcessor):
+class LemmatizationProcessor(TextProcessor[str]):
     def __init__(self, tui: TUI) -> None:
         super().__init__(tui)
         self._nlp = spacy.load("en_core_web_sm", disable=["parser", "ner"])

@@ -17,7 +17,7 @@ class TUI:
     def __init__(self) -> None:
         pass
 
-    def print_evaluation_results(self, evaluation: RecallEvaluation) -> str:
+    def print_evaluation_results(self, evaluation: RecallEvaluation) -> None:
         """Formats the evaluation scores into a readable string.
 
         Args:
@@ -48,8 +48,11 @@ class TUI:
             (5, evaluation.recall_5),
             (10, evaluation.recall_10),
         ]
-        for key, value in metrics:
-            print(f"{'Recall@' + str(key):<{padding}} {value:.03f}")
+        for recall, recall_value in metrics:
+            print(
+                f"{'Recall@' + str(recall):<{padding}} "
+                f"{float(recall_value):.03f}"
+            )
 
     def print(self, data: str) -> None:
         """Prints the provided data to standard output.
