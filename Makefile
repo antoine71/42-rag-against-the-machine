@@ -50,7 +50,7 @@ run:
 
 debug:
 	@echo "$(E_WAIT) Entering debug mode..."
-	@uv run -m pdb -m src
+	@uv run -m pdb -m $(NAME)
 
 test:
 	@echo "$(E_WAIT) Running tests..."

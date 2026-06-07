@@ -35,13 +35,20 @@ class IndexingProcessorFactory:
             RAGException: If an invalid indexing method is specified.
         """
 
+        def clone_chunks(chunks: list[Chunk]) -> list[Chunk]:
+            return [chunk.model_copy(deep=True) for chunk in chunks]
+
         def bm25_factory() -> BM25IndexingProcessor:
             """Creates a BM25 indexing processor instance."""
-            return BM25IndexingProcessor(chunks, tui, BM25Configuration())
+            return BM25IndexingProcessor(
+                clone_chunks(chunks), tui, BM25Configuration()
+            )
 
         def vector_factory() -> VectorEmbeddingProcessor:
             """Creates a vector embedding indexing processor instance."""
-            return VectorEmbeddingProcessor(chunks, tui, EmbeddingConfig())
+            return VectorEmbeddingProcessor(
+                clone_chunks(chunks), tui, EmbeddingConfig()
+            )
 
         match indexing_method:
             case IndexingMethod.BM25:

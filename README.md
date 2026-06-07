@@ -1,8 +1,6 @@
-
 *This project has been created as part of the 42 curriculum by arebilla.*
 
-
-# RAG against the machine: Retrieval Augmented Generation
+# RAG against the machine
 
 <p align="center">
   <a href="https://www.python.org">
@@ -14,255 +12,334 @@
 </p>
 
 <p align="center">
-  <b>A full Retrieval-Augmented Generation pipeline over a code repository</b><br/>
-  Index → Retrieve → Answer — with BM25, vector embeddings, or hybrid search.
+  <b>A command-line Retrieval-Augmented Generation pipeline for repository QA.</b><br/>
+  Index a codebase, retrieve relevant sources, generate answers, and evaluate recall.
 </p>
-
 
 ## Description
 
-**RAG against the machine** is a command-line RAG (Retrieval-Augmented Generation) application built around the [vLLM](https://github.com/vllm-project/vllm) repository. Given a set of natural-language questions, the system:
+**RAG against the machine** is a Python CLI application that builds a
+Retrieval-Augmented Generation pipeline over a local repository. It was built
+for the 42 RAG subject and targets the `vLLM` repository by default.
 
-1. **Indexes** a code/documentation repository by splitting files into semantically meaningful chunks.
-2. **Retrieves** the most relevant chunks for each query using BM25, dense vector embeddings, or a hybrid combination of both.
-3. **Answers** each question by passing the retrieved context to a large language model (LLM) and returning a structured JSON response.
+The pipeline can:
 
-The output conforms to the Pydantic models defined in the subject (`StudentSearchResults` / `StudentSearchResultsAndAnswer`), and performance is measured with a **Recall@k** metric.
+- scan and index `.py`, `.md`, and `.txt` files;
+- split files into overlapping chunks;
+- build BM25, vector, or hybrid indexes;
+- retrieve source spans for one question or a dataset of questions;
+- generate answers with a local Hugging Face causal LLM;
+- evaluate retrieval quality with Recall@1, Recall@3, Recall@5, and Recall@10.
 
+The JSON outputs follow the expected subject structures:
+`StudentSearchResults` and `StudentSearchResultsAndAnswer`.
 
-## System Architecture
+## Architecture
 
+```text
+RAGPipeline CLI
+├── index
+│   ├── FilesRepositoryScanner
+│   ├── ChunkingManager
+│   └── IndexingPipeline
+│       ├── BM25IndexingProcessor
+│       └── VectorEmbeddingProcessor
+├── search / search_dataset
+│   └── RetrievingPipeline
+│       ├── BM25RetrievingProcessor
+│       ├── VectorRetrievingProcessor
+│       └── Reciprocal Rank Fusion for hybrid retrieval
+├── answer / answer_dataset
+│   ├── ChatTemplatePromptGenerator
+│   └── LLMManager
+└── evaluate
+    └── EvaluationProcessor
 ```
-┌──────────────────────────────────────────────────────────────────┐
-│                        RAGPipeline (CLI)                         │
-│  index | search | search_dataset | answer | answer_dataset       │
-│                          | evaluate                              │
-└───────────────┬──────────────────────────┬───────────────────────┘
-                │                          │
-    ┌───────────▼──────────┐   ┌───────────▼──────────────────────┐
-    │   Indexing pipeline  │   │       Retrieving pipeline        │
-    │                      │   │                                  │
-    │ FilesRepositoryScanner│  │  RetrievingProcessorFactory      │
-    │ LangChainChunking    │   │  ┌──────────┬────────────────┐   │
-    │  Processor           │   │  │ BM25     │ Vector         │   │
-    │ IndexingProcessor    │   │  │ Retriever│ Retriever      │   │
-    │  Factory             │   │  └────┬─────┴────────┬───────┘   │
-    │  ┌──────┬──────────┐ │   │       └──── RRF ─────┘           │
-    │  │ BM25 │ Vector   │ │   │       (hybrid mode)              │
-    │  └──────┴──────────┘ │   └───────────┬──────────────────────┘
-    └──────────────────────┘               │
-                                ┌──────────▼──────────┐
-                                │    LLM Manager      │
-                                │  (HuggingFace /     │
-                                │   transformers)     │
-                                └─────────────────────┘
+
+The project is intentionally modular: scanning, chunking, indexing, retrieving,
+LLM generation, and evaluation are implemented as separate processors.
+
+## Repository Layout
+
+```text
+src/rag/
+├── chunking/        File splitting and chunk enrichment
+├── config/          BM25, embedding, chunking, LLM, and RRF settings
+├── evaluation/      Recall metric implementation
+├── indexing/        BM25 and vector index creation
+├── llm/             Prompt generation and local LLM inference
+├── models/          Pydantic models for datasets and outputs
+├── pipeline/        Python Fire CLI entry point
+├── retrieving/      BM25, vector, and hybrid retrieval
+├── text_processing/ Query and chunk preprocessing
+└── utils/           File IO, validation, timing, and RRF helpers
 ```
 
-The pipeline is fully modular: each component (chunker, indexer, retriever, LLM) can be used independently.
+## Supported Data
 
+The scanner indexes non-empty files from these categories:
 
-## Chunking Strategy
+| Category | Extensions |
+|----------|------------|
+| `code` | `.py` |
+| `documentation` | `.md`, `.txt` |
+| `all` | `.py`, `.md`, `.txt` |
 
-Files are split using **LangChain text splitters** tailored to each file type:
+The default repository is:
 
-| File type | Splitter | Logic |
-|-----------|----------|-------|
-| `.py`     | `PythonCodeTextSplitter` | Respects Python AST boundaries (class, function, block) |
-| `.md`     | `MarkdownTextSplitter`   | Respects Markdown heading and paragraph boundaries |
+```text
+data/raw/vllm-0.10.1
+```
 
-Both splitters are configured with:
-- **`chunk_size`**: maximum character length per chunk (default: `2000`). Otimal chunk size after performing tests is **1400**.
-- **`chunk_overlap`**: `max(10, chunk_size // 5)` to avoid cutting relevant context at boundaries, chunk overlap is set to 20%
+## Chunking
 
-Only `.py` and `.md` files are indexed.
+Files are split with LangChain recursive text splitters. Markdown uses a
+dedicated `MarkdownChunkingProcessor`; Python and plain text use
+`RecursiveCharacterTextSplitter`.
 
-## Indexing Strategy
+Default chunking settings:
 
-Two distinct indexes are build, for *python* files and *markdown* files in order to optimise the retrieval. The type of files to be indexed can be set via the flag `--file_type` (defaults to `markdown`)
+| Setting | Default |
+|---------|---------|
+| `max_chunk_size` | `2000` characters |
+| overlap ratio | `20%` |
+| computed overlap | `max_chunk_size * 0.2` |
 
-Three indexing strategies are available via the `--indexing_method` flag:
+Each chunk stores source metadata, including the file path and character
+indexes. Chunks are also enriched with path-derived breadcrumbs to improve
+retrieval.
 
-### BM25 (default)
-- Uses [bm25s](https://github.com/xhluca/bm25s)
-- Index is serialized to disk.
+## Indexing and Retrieval
 
-### Vector (dense)
-- Encodes chunks a **sentence-transformers** model. After testing, the model offering the best performance / cost ratio is `sentence-transformers/msmarco-bert-base-dot-v5`
-- Stores embeddings in a [ChromaDB](https://www.trychroma.com/) persistent collection.
+The same CLI option, `indexing_method`, selects the index or retriever:
 
-### Hybrid (BM25 + Vector)
-- Runs both indexing methods
+| Method | Behavior |
+|--------|----------|
+| `bm25` | Sparse keyword index with `bm25s` |
+| `vector` | Dense embeddings stored in persistent ChromaDB collections |
+| `hybrid` | BM25 and vector indexes/retrievers combined |
 
+BM25 uses `k1=1.2` and `b=0.75`.
 
-## Retrieval Method
+Vector search uses:
 
-Three retrieval strategies are available via the `--retrieving_method` flag:
+```text
+sentence-transformers/msmarco-bert-base-dot-v5
+```
 
-### BM25 (default)
-- Index is loaded from disk
-- Performance has been improved by adjusting k1 (term frequency saturation) and b (document length normalization).
-- Returns the top-k chunks ranked by BM25 score.
+Hybrid retrieval runs BM25 and vector retrieval independently, asks each
+retriever for `k * 4` candidates, then merges the ranked lists with Reciprocal
+Rank Fusion. BM25 currently uses weight `1.9`; vector retrieval uses weight
+`1.0`.
 
-### Vector (dense)
-- Loads chunks embeddings from [ChromaDB](https://www.trychroma.com/).
-- Retrieves top-k chunks by cosine similarity.
+## Answer Generation
 
-### Hybrid (BM25 + Vector)
-- Runs both retrievers independently with `k × k_factor` results each.
-- Fuses the ranked lists using **Reciprocal Rank Fusion (RRF)** with configurable per-method weights.
-- Produces a final merged top-k ranking.
+Answer generation loads a local Hugging Face causal language model through
+`transformers`.
 
+Default LLM settings:
+
+| Setting | Default |
+|---------|---------|
+| model | `Qwen/Qwen3-0.6B` |
+| batch size | `1` |
+| max new tokens | `256` |
+
+The model runs on CUDA when available, otherwise on CPU. The first run may
+download model weights from Hugging Face.
 
 ## Performance Analysis
 
-Evaluation is performed with a **Recall@k** metric: a retrieved source is counted as a hit if it overlaps by at least 5 % with any ground-truth source.
+Evaluation compares retrieved sources against the answered-question ground
+truth dataset.
 
-| Method  | Recall@5 (code) | Recall@5 (code) |
-|---------|------------------------|------------------------|
-| BM25    | 55 %                 | 86 %                 |
-| Vector  | N/A                 | 73 %                 |
-| Hybrid  | N/A                 | 88 %                 |
+A retrieved source is considered a hit when:
 
-The performance of dense vector embedding search is lower than BM25 for docs search, but it allows improvement for hybrid search over BM25.
-The performance of dense vector embedding is not considered for code search, as it does not offer improvement over BM25.
+- it points to the same file as a ground-truth source;
+- its character span overlaps the ground-truth span by at least `5%`.
 
-## Design Decisions
+The evaluator reports:
 
-- **Python Fire** is used for CLI generation: `RAGPipeline` public methods become subcommands automatically, with type-checked arguments via Pydantic `validate_with` decorators.
-- **Factory pattern** for indexers and retrievers: adding a new retrieval backend only requires a new processor class and a single factory entry.
-- **Use of langchain text splitters** Langchain library has efficient text splitters that are designed to respect markdown and python natural boundaries. Efficient chunking improves retrieving efficiency.
-- **Use of sentence transformers for dense embedding** Sentence transformers is the state of the art librairy for using embedding models. A wide selection of models are available from Hugging Face Hub and ready to use.
+- data validity;
+- number of evaluated questions;
+- number of questions with reference sources;
+- number of questions with retrieved sources;
+- Recall@1, Recall@3, Recall@5, and Recall@10.
 
+Current public-dataset results produced by the existing search outputs are:
 
-## Challenges Faced
+| Dataset | Recall@1 | Recall@3 | Recall@5 | Recall@10 |
+|---------|----------|----------|----------|-----------|
+| docs | 0.660 | 0.790 | 0.860 | 0.920 |
+| code | 0.410 | 0.700 | 0.750 | 0.850 |
 
-The following challenges were faced during the course of the project:
-- *Technology stack selection:* The AI ecosystem is characterized by a large and rapidly evolving set of libraries and frameworks. Selecting the appropriate stack required a careful assessment of each tool’s purpose, strengths, and limitations in order to identify the most suitable components for the project requirements.
-- *System architecture design:* The RAG system required a modular architecture to ensure scalability and facilitate iterative improvements. This was essential to accommodate additional functionalities aimed at enhancing pipeline performance, such as hybrid search and multi-indexing strategies.
-- *Performance optimization:* System performance was progressively improved through an iterative trial-and-error process, involving the tuning of several critical RAG parameters (chunk size, chunk overlap, BM25 parameters, embedding model, and RRF weights). Due to the absence of GPU resources, only lightweight embedding models could be used, which made it challenging to achieve acceptable performance with dense vector retrieval methods.
-
-
-## Example Usage
-
-### 1. Index the repository
-
-```bash
-# Using the Makefile (BM25 by default)
-make run ARGS="index"
-
-# Full options
-uv run --env-file .env.hf rag index \
-  --repository data/raw/vllm-0.10.1 \
-  --save_directory data/processed/ \
-  --max_chunk_size 2000 \
-  --indexing_method bm25 \
-  --file_type markdown
-```
-
-Available `indexing_method` values: `bm25`, `vector`, `hybrid`.
-Available `file_type` values: `python`, `markdown`
-
-### 2. Search for a single query
-
-```bash
-uv run --env-file .env.hf rag search \
-  --query "How does vLLM handle continuous batching?" \
-  --retrieving_method hybrid \
-  --k 5
-```
-
-### 3. Batch search over a dataset
-
-```bash
-uv run --env-file .env.hf rag search_dataset \
-  --dataset_path datasets_public/public/UnansweredQuestions/dataset_docs_public.json \
-  --retrieving_method bm25 \
-  --k 10
-```
-
-### 4. Generate answers for a single query
-
-```bash
-uv run --env-file .env.hf rag answer \
-  --query "What is the difference between eager and lazy mode in vLLM?" \
-  --retrieving_method vector \
-  --k 5
-```
-
-### 5. Generate answers for a full dataset
-
-```bash
-uv run --env-file .env.hf rag answer_dataset \
-  --student_search_result_path data/output/search_results/dataset_docs_public.json \
-  --save_directory data/output/search_result_and_answer/
-```
-
-### 6. Evaluate recall
-
-```bash
-uv run --env-file .env.hf rag evaluate \
-  --student_answer_path data/output/search_results/dataset_code_public.json \
-  --dataset_path datasets_public/public/AnsweredQuestions/dataset_code_public.json
-```
-
+These results satisfy the subject thresholds of Recall@5 >= 0.80 for docs and
+Recall@5 >= 0.50 for code.
 
 ## Instructions
 
-### Prerequisites
-- Python 3.10
+### Requirements
+
+- Python `3.10`
 - [`uv`](https://docs.astral.sh/uv/)
+- Internet access for the initial dependency/model downloads
+- Optional CUDA-capable GPU for faster embeddings and answer generation
 
 ### Installation
 
 ```bash
 make install
-# or
+```
+
+Equivalent direct command:
+
+```bash
 uv sync
 ```
 
-### Execution
+The Makefile runs commands with `.env.hf` when using `make run`. This is useful
+for Hugging Face-related environment variables.
+
+### CLI Usage
+
+Run through the Makefile:
 
 ```bash
-# Run any pipeline command
 make run ARGS="<command> [options]"
-
-# Examples
-make run ARGS="index"
-make run ARGS="search --query 'What is PagedAttention?'"
 ```
 
-Or directly with `uv`:
+Or call the installed script directly:
 
 ```bash
 uv run --env-file=.env.hf rag <command> [options]
 ```
 
-### Linting and Testing
+### 1. Build an index
 
 ```bash
-make lint         # flake8 + mypy (standard)
-make lint-strict  # flake8 + mypy --strict
-make test         # pytest suite
-make clean        # remove caches and build artifacts
+uv run --env-file=.env.hf rag index \
+  --repository data/raw/vllm-0.10.1 \
+  --save_directory data/processed \
+  --max_chunk_size 2000 \
+  --indexing_method hybrid \
+  --files_category all
 ```
 
+Defaults:
+
+```text
+repository=data/raw/vllm-0.10.1
+save_directory=data/processed/
+max_chunk_size=2000
+indexing_method=bm25
+files_category=all
+```
+
+Example output:
+
+![Index command output](assets/index_report.png)
+
+### 2. Search one question
+
+```bash
+uv run --env-file=.env.hf rag search \
+  --query "How does vLLM handle continuous batching?" \
+  --index_directory data/processed \
+  --indexing_method hybrid \
+  --files_category documentation \
+  --k 10
+```
+
+### 3. Search a dataset
+
+```bash
+uv run --env-file=.env.hf rag search_dataset \
+  --dataset_path datasets_public/public/UnansweredQuestions/dataset_docs_public.json \
+  --index_directory data/processed \
+  --save_directory data/output/search_results \
+  --indexing_method bm25 \
+  --files_category documentation \
+  --k 10
+```
+
+The output file keeps the input dataset filename and is written under
+`save_directory`.
+
+Example output:
+
+![Search dataset command output](assets/search_dataset_report.png)
+
+### 4. Generate an answer for one question
+
+```bash
+uv run --env-file=.env.hf rag answer \
+  --query "What is PagedAttention?" \
+  --index_directory data/processed \
+  --indexing_method hybrid \
+  --files_category all \
+  --k 10
+```
+
+### 5. Generate answers from search results
+
+```bash
+uv run --env-file=.env.hf rag answer_dataset \
+  --student_search_result_path data/output/search_results/dataset_docs_public.json \
+  --save_directory data/output/search_result_and_answer \
+  --k 10
+```
+
+### 6. Evaluate retrieval
+
+```bash
+uv run --env-file=.env.hf rag evaluate \
+  --student_answer_path data/output/search_results/dataset_docs_public.json \
+  --dataset_path datasets_public/public/AnsweredQuestions/dataset_docs_public.json
+```
+
+### Development Commands
+
+```bash
+make test         # run pytest
+make lint         # run flake8 and mypy
+make lint-strict  # run flake8 and mypy --strict
+make clean        # remove Python caches and tool caches
+```
+
+## Design Decisions
+
+- BM25 remains strong for repository QA because many questions contain exact
+  API names, file names, and code identifiers.
+- Vector search adds semantic matching, but it is more expensive and depends on
+  the embedding model quality.
+- Hybrid search combines both approaches with Reciprocal Rank Fusion and is
+  the most flexible mode when indexing time and storage are acceptable.
+- The implementation favors explicit processors and factories so new indexing
+  or retrieval strategies can be added without rewriting the full pipeline.
+
+## Challenges Faced
+
+- Selecting the right retrieval stack required comparing simple lexical search
+  with semantic embeddings while keeping the subject performance constraints in
+  mind.
+- Chunking had to preserve useful source locations while still producing chunks
+  small enough to fit retrieval and LLM context limits.
+- Dense retrieval improves semantic matching but increases indexing time,
+  storage, and model-download requirements, so hybrid mode is kept optional.
+- The public datasets use strict character-span evaluation, which made source
+  metadata and overlap calculations a central part of the implementation.
+
+## AI Usage
+
+AI assistance was used during the project for architecture brainstorming, code
+review, docstring drafting, and README structuring. Generated suggestions were
+reviewed, adapted, and tested before integration.
 
 ## Resources
 
-### RAG & Information Retrieval
-- [RAG : augmenter un LLM avec vos données - Stéphane Robert](https://blog.stephane-robert.info/docs/developper/programmation/python/rag-introduction/)
-- [Speech and Language Processing (3rd ed. draft) Dan Jurafsky and James H. Martin - Chapter 11: Information Retrieval and Retrieval-Augmented Generation](https://web.stanford.edu/~jurafsky/slp3/)
-
-### Libraries & Tools
-- [LangChain Text Splitters documentation](https://python.langchain.com/docs/modules/data_connection/document_transformers/)
-- [bm25s — fast BM25 in Python](https://github.com/xhluca/bm25s)
-- [ChromaDB documentation](https://docs.trychroma.com/)
-- [sentence-transformers documentation](https://www.sbert.net/)
-
-### AI Usage
-AI assistance (Claude / Gemini / ChatGPT) was used for the following tasks during this project:
-- **Pair programming**: brainstorming application architecture, performing code reviews.
-- **Docstring writing**: generating docstrings for public methods from their type signatures and logic.
-- **README drafting**: structuring and wording the present document based on the subject requirements.
-
-All AI-generated code was reviewed, tested, and integrated manually.
+- [RAG: augmenter un LLM avec vos donnees - Stephane Robert](https://blog.stephane-robert.info/docs/developper/programmation/python/rag-introduction/)
+- [Speech and Language Processing, Chapter 11: Information Retrieval and Retrieval-Augmented Generation](https://web.stanford.edu/~jurafsky/slp3/)
+- [bm25s](https://github.com/xhluca/bm25s)
+- [ChromaDB](https://docs.trychroma.com/)
+- [sentence-transformers](https://www.sbert.net/)
+- [LangChain text splitters](https://python.langchain.com/docs/concepts/text_splitters/)

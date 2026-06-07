@@ -20,8 +20,7 @@ class MinimalSearchResults(BaseModel):
     def from_query_and_sources(
         cls, query: UnansweredQuestion, sources: list[Mapping[str, Any]]
     ) -> "MinimalSearchResults":
-        """Create a MinimalSearchResults instance from a query and sources.
-        """
+        """Create a MinimalSearchResults instance from a query and sources."""
         return cls(
             question_id=query.question_id,
             question=query.question,
@@ -37,6 +36,7 @@ class MinimalAnswer(MinimalSearchResults):
 
 class StudentSearchResults(BaseModel):
     """Represents student search results for multiple queries."""
+
     search_results: Sequence[MinimalSearchResults]
     k: int
 

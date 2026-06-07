@@ -129,7 +129,7 @@ class FilesManager:
             ) from e
         try:
             start = source.first_character_index
-            end = source.last_character_index
+            end = source.last_character_index + 1
             return content[start:end]
         except IndexError as e:
             raise FilesManagerError(
