@@ -8,6 +8,7 @@ from rag.models.indexing_method import IndexingMethod
 from rag.retrieving.retrieving_processor import RetrievingProcessor
 from rag.tui import TUI
 from rag.utils.files_manager import FilesManager
+from rag.utils.measure import measure
 
 
 class BM25RetrievingProcessor(RetrievingProcessor):
@@ -40,7 +41,14 @@ class BM25RetrievingProcessor(RetrievingProcessor):
             load_corpus=True,
             **self._config.bm25_settings.model_dump(),
         )
-        results, _ = retriever.retrieve(
-            query_tokens, show_progress=True, leave_progress=True, k=k
+        (results, _), delta = measure(
+            retriever.retrieve, query_tokens, show_progress=True, k=k
+        )
+        self._tui.print_task_report(
+            f"{self._config.TYPE} retrieving",
+            delta,
+            "questions",
+            len(processed_queries),
+            new_line_after=True,
         )
         return results

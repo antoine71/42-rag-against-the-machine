@@ -7,6 +7,7 @@ from rag.models.question import UnansweredQuestion
 from rag.models.search_result import MinimalSearchResults, StudentSearchResults
 from rag.text_processing.pipeline_factory import TextProcessingPipelineFactory
 from rag.tui import TUI
+from rag.utils.measure import measure
 
 
 class RetrievingProcessor(ABC):
@@ -36,8 +37,16 @@ class RetrievingProcessor(ABC):
         query_processing_pipeline = query_processing_pipeline_factory.create(
             file_type
         )
-        processed_queries = query_processing_pipeline.process_list(
-            [query.question for query in queries]
+        processed_queries, delta = measure(
+            query_processing_pipeline.process_list,
+            [query.question for query in queries],
+        )
+
+        self._tui.print_task_report(
+            "Processing questions",
+            delta,
+            "questions",
+            len(queries),
         )
         return processed_queries
 
@@ -58,7 +67,7 @@ class RetrievingProcessor(ABC):
             A StudentSearchResults object containing retrieved sources for each
                 query.
         """
-        self._tui.print(f"Retrieving {file_type} with {self._config.TYPE}...")
+        self._tui.print_phase_title(f"{self._config.TYPE}")
         processed_queries = self._queries_text_processing(file_type, queries)
         results = self._load_and_retrieve(file_type, processed_queries, k)
         search_result = [

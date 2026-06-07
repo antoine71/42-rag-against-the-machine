@@ -45,9 +45,6 @@ class FilesRepositoryScanner:
         Returns:
             A list of Path objects pointing to valid repository files.
         """
-        self._tui.print(
-            f"Listing {files_category} files from '{self._repository_path}'"
-        )
         data_files: list[Path] = []
         for root, _, files in os.walk(
             str(self._repository_path), onerror=self._error_handler
@@ -60,7 +57,6 @@ class FilesRepositoryScanner:
             f"Found {len(data_files)} files:\n {[str(f) for f in data_files]}"
         )
         count = self._count_files(data_files)
-        self._tui.print(f"Found {len(data_files)} files: {count}.")
         return data_files
 
     def _count_files(self, data_files: list[Path]) -> str:

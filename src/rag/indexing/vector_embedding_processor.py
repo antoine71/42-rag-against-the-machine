@@ -1,3 +1,5 @@
+import time
+
 import chromadb
 from more_itertools import batched
 from sentence_transformers import SentenceTransformer
@@ -9,6 +11,8 @@ from rag.models.file_category import FileCategory
 from rag.models.indexing_method import IndexingMethod
 from rag.tui import TUI
 from rag.utils.files_manager import FilesManager
+from rag.utils.measure import measure
+from rag.utils.patch_sentence_transformers_tqdm import patch_tqdm
 
 
 class VectorEmbeddingProcessor(IndexingProcessor):
@@ -31,6 +35,7 @@ class VectorEmbeddingProcessor(IndexingProcessor):
         self._config: EmbeddingConfig
         self._embedder = SentenceTransformer(config.model)
 
+    @patch_tqdm
     def _index_and_save(
         self,
         processed_chunks: list[Chunk],
@@ -39,11 +44,16 @@ class VectorEmbeddingProcessor(IndexingProcessor):
     ) -> str:
         texts = [chunk.text for chunk in processed_chunks]
         metadatas = [chunk.metadata for chunk in processed_chunks]
-        corpus_embeddings = self._embedder.encode_document(
+        corpus_embeddings, delta = measure(
+            self._embedder.encode_document,
             texts,
             show_progress_bar=True,
             batch_size=self._config.embedding_batch_size,
         )
+        self._tui.print_task_report(
+            f"{self._config.TYPE}", delta, "chunks", len(texts)
+        )
+
         save_path = FilesManager.get_indexing_directory(
             save_directory, IndexingMethod.VECTOR, file_type
         )
@@ -65,6 +75,7 @@ class VectorEmbeddingProcessor(IndexingProcessor):
         batched_metadatas = batched(
             metadatas, self._config.chromadb_batch_size
         )
+        start_save = time.perf_counter()
         with self._tui.progress(
             "Saving to database", len(processed_chunks), "chunk"
         ) as progress:
@@ -81,4 +92,12 @@ class VectorEmbeddingProcessor(IndexingProcessor):
                     progress.update(batch_size)
                 except StopIteration:
                     break
+        end_save = time.perf_counter()
+        delta = int((end_save - start_save) * 1000)
+        self._tui.print_task_report(
+            "data persistence",
+            delta,
+            "chunks",
+            len(texts),
+        )
         return save_path

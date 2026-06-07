@@ -1,3 +1,4 @@
+import time
 from typing import Any, Mapping
 
 import chromadb
@@ -47,6 +48,7 @@ class VectorRetrievingProcessor(RetrievingProcessor):
             corpus["embeddings"], dtype=torch.float32
         )
         results = []
+        start = time.perf_counter()
         with self._tui.progress(
             "Semantic search", len(processed_queries), "query"
         ) as progress:
@@ -66,4 +68,13 @@ class VectorRetrievingProcessor(RetrievingProcessor):
                 assert metadatas is not None
                 results.append([metadatas[idx] for idx in indices])
                 progress.update(1)
+        end = time.perf_counter()
+        delta = int((end - start) * 1000)
+        self._tui.print_task_report(
+            f"{self._config.TYPE} retrieving",
+            delta,
+            "questions",
+            len(processed_queries),
+            new_line_after=True,
+        )
         return results

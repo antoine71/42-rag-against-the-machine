@@ -3,6 +3,8 @@ from rag.models.file_category import FileCategory
 from rag.models.question import UnansweredQuestion
 from rag.models.search_result import MinimalSearchResults, StudentSearchResults
 from rag.retrieving.retrieving_processor import RetrievingProcessor
+from rag.tui import TUI
+from rag.utils.measure import measure
 from rag.utils.reciprocal_rank_fusion import reciprocal_rank_fusion
 
 
@@ -15,7 +17,7 @@ class RetrievingPipeline:
     """
 
     def __init__(
-        self, retrieving_processors: list[RetrievingProcessor]
+        self, retrieving_processors: list[RetrievingProcessor], tui: TUI
     ) -> None:
         """Initializes the RetrievingManager.
 
@@ -25,6 +27,7 @@ class RetrievingPipeline:
         """
         self._retrieving_processors = retrieving_processors
         self._rrf_config = RRFConfig()
+        self._tui = tui
 
     def process(
         self,
@@ -67,11 +70,20 @@ class RetrievingPipeline:
             )
             for processor in self._retrieving_processors
         ]
-        reranked_result = self._rerank_results(
+        self._tui.print_phase_title("Reciprocal Rank Fusion")
+        reranked_result, delta = measure(
+            self._rerank_results,
             queries,
             search_results,
             [p.WEIGHT for p in self._retrieving_processors],
             k,
+        )
+        self._tui.print_task_report(
+            "Reranking",
+            delta,
+            "questions",
+            len(queries),
+            new_line_after=True,
         )
         return reranked_result
 

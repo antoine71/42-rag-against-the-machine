@@ -1,6 +1,5 @@
 from collections.abc import Generator
 from contextlib import contextmanager
-from textwrap import dedent
 from typing import Any
 
 from tqdm import tqdm
@@ -13,29 +12,12 @@ class TUI:
     progress bars.
     """
 
-    def print_evaluation_results(
-        self,
-        evaluation: RecallEvaluation,
-        dataset: str,
-        student_search_results: str,
-    ) -> None:
-        """Prints the evaluation results in a formatted block.
+    WIDTH = 100
 
-        Args:
-            evaluation: The RecallEvaluation containing evaluation metrics.
-            dataset: Path or name of the dataset evaluated.
-            student_search_results: Path or name of the search results
-                evaluated.
-        """
-        self.print(
-            dedent(f"""\
-                Dataset: '{dataset}'
-                Search results: '{student_search_results}'
-                """)
-        )
-        self.print(self._format_evaluation_scores(evaluation))
+    def __init__(self) -> None:
+        pass
 
-    def _format_evaluation_scores(self, evaluation: RecallEvaluation) -> str:
+    def print_evaluation_results(self, evaluation: RecallEvaluation) -> str:
         """Formats the evaluation scores into a readable string.
 
         Args:
@@ -44,20 +26,30 @@ class TUI:
         Returns:
             A formatted multi-line string with the evaluation metrics.
         """
-        return dedent(f"""\
-            Student data is valid: {evaluation.data_is_valid}
-            Total number of questions: {evaluation.number_of_questions}
-            Total number of questions with sources: {
-            evaluation.number_of_questions_with_sources
-        }
-            Total number of questions with student sources: {
-            evaluation.number_of_questions_with_student_sources
-        }
-
-            Recall@1: {evaluation.recall_1:.3f}
-            Recall@3: {evaluation.recall_3:.3f}
-            Recall@5: {evaluation.recall_5:.3f}
-            Recall@10: {evaluation.recall_10:.3f}""")
+        padding = int(self.WIDTH // (3 / 2))
+        data = [
+            ("Student data is valid", evaluation.data_is_valid),
+            ("Total number of questions", evaluation.number_of_questions),
+            (
+                "Total number of questions with source",
+                evaluation.number_of_questions_with_sources,
+            ),
+            (
+                "Total number of quesitons with student source",
+                evaluation.number_of_questions_with_student_sources,
+            ),
+        ]
+        for key, value in data:
+            print(f"{key:<{padding}} {value}")
+        print()
+        metrics = [
+            (1, evaluation.recall_1),
+            (3, evaluation.recall_3),
+            (5, evaluation.recall_5),
+            (10, evaluation.recall_10),
+        ]
+        for key, value in metrics:
+            print(f"{'Recall@' + str(key):<{padding}} {value:.03f}")
 
     def print(self, data: str) -> None:
         """Prints the provided data to standard output.
@@ -79,11 +71,81 @@ class TUI:
         Yields:
             The tqdm progress bar instance.
         """
-        pbar = tqdm(total=total, desc=desc, unit=unit)
+        pbar = tqdm(total=total, desc=desc, unit=unit, leave=False)
         try:
             yield pbar
         finally:
             pbar.close()
+
+    def _format_subtitle(self, subtitle: tuple[str, str | int]) -> str:
+        title, value = subtitle
+        return f"{title:<{self.WIDTH // 5}}{value:>{4 * self.WIDTH // 5}}"
+
+    def print_title(
+        self, rag_step: str, *subtitles: tuple[str, str | int]
+    ) -> None:
+        bar = self.WIDTH * "="
+        title = f"RAG {rag_step.upper()}"
+        formatted_subtitles = [
+            self._format_subtitle(subtitle) for subtitle in subtitles
+        ]
+        print(bar)
+        print(title)
+        for subtitle in formatted_subtitles:
+            print(subtitle)
+        print(bar)
+        print()
+
+    def print_phase_title(self, phase_title: str) -> None:
+        title = f"{phase_title}"
+        bar = self.WIDTH * "-"
+        print(title)
+        print(bar)
+
+    def print_task_report(
+        self,
+        title: str,
+        delta_time_ms: int,
+        unit: str = "",
+        data: int = 0,
+        new_line_before: bool = False,
+        new_line_after: bool = False,
+    ) -> None:
+        task_display = f"✓ {title.capitalize()} completed"
+        value = f"{data} {unit}"
+        total_secondes = delta_time_ms / 1000
+        minutes = int(total_secondes // 60)
+        secondes = total_secondes % 60
+        if minutes:
+            timestamp = f"{minutes}m{secondes:.0f}s"
+        else:
+            timestamp = f"{secondes:.02f}s"
+
+        if new_line_before:
+            self.new_line()
+        print(
+            f"{task_display:<{self.WIDTH // 2}}{value:<{self.WIDTH // 4}}"
+            f"{timestamp:<{self.WIDTH // 4}}"
+        )
+        if new_line_after:
+            self.new_line()
+
+    def new_line(self) -> None:
+        print()
+
+    def _format_summary_data(self, data: tuple[str, str]) -> str:
+        key, value = data
+        return f"{key:<{self.WIDTH // 2}{value}}"
+
+    def print_summary(self, duration: int, *data: tuple[str, str]) -> None:
+        bar = self.WIDTH * "="
+        title = "SUMMARY"
+        formatted_data = [self._format_summary_data(d) for d in data]
+        print(bar)
+        print(title)
+        for d in formatted_data:
+            print(d)
+        print(bar)
 
 
 _tui_instance = None

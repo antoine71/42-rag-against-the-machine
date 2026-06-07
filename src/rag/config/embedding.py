@@ -40,6 +40,7 @@ class EmbeddingConfig(IndexingConfig, RetrievingConfig):
             processors={
                 FileCategory.DOCUMENTATION: [],
                 FileCategory.CODE: [],
+                FileCategory.ALL: [],
             }
         )
     )

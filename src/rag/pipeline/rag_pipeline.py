@@ -33,6 +33,7 @@ from rag.retrieving.retrieving_processor_factory import (
 from rag.tui import TUI
 from rag.utils.cli_validator import validate_with
 from rag.utils.files_manager import FilesManager
+from rag.utils.measure import measure
 
 logger = logging.getLogger(__name__)
 
@@ -54,7 +55,7 @@ class RAGPipeline:
         max_chunk_size: int = 2000,
         repository: str = "data/raw/vllm-0.10.1",
         save_directory: str = "data/processed/",
-        indexing_method: IndexingMethod = IndexingMethod.BM25,
+        indexing_method: str = "bm25",
         files_category: str = "all",
     ) -> None:
         """Scans the repository, chunks files, and builds a searchable index.
@@ -67,17 +68,21 @@ class RAGPipeline:
             indexing_method: The indexing strategy to use (
                 'bm25', 'vector', or 'hybrid').
         """
+        self._tui.print_title("indexing", ("dataset", repository))
         files_category = FileCategory(files_category)
-        files = FilesRepositoryScanner(Path(repository), self._tui).list_files(
-            files_category
-        )
+        indexing_method = IndexingMethod(indexing_method)
+        scanner = FilesRepositoryScanner(Path(repository), self._tui)
+        files, delta = measure(scanner.list_files, files_category)
+        self._tui.print_task_report("discovery", delta, "files", len(files))
 
         chunking_config = ChunkingConfig(chunk_size=max_chunk_size)
         chunking_manager = ChunkingManager(
             chunking_config, files, self._tui, repository
         )
-        chunks = chunking_manager.split()
-        self._tui.print(f"Split {len(files)} files into {len(chunks)} chunks.")
+        chunks, delta = measure(chunking_manager.split)
+        self._tui.print_task_report(
+            "chunking", delta, "chunks", len(chunks), new_line_after=True
+        )
 
         indexing_processors = IndexingProcessorFactory.create(
             indexing_method, chunks, self._tui
@@ -91,7 +96,7 @@ class RAGPipeline:
         query: str,
         index_directory: str = "data/processed",
         indexing_method: str = "bm25",
-        file_type: str = "documentation",
+        files_category: str = "all",
         k: int = 10,
     ) -> None:
         """Searches the knowledge base for a single query and prints top
@@ -104,18 +109,21 @@ class RAGPipeline:
                 'bm25', 'vector', or 'hybrid').
             k: Number of top results to retrieve.
         """
+        files_category = FileCategory(files_category)
+        self._tui.print_title("search")
         retrievers = RetrievingProcessorFactory.create(
             IndexingMethod(indexing_method),
             index_directory,
             self._tui,
         )
-        retrieving_pipeline = RetrievingPipeline(retrievers)
+        retrieving_pipeline = RetrievingPipeline(retrievers, self._tui)
         question = UnansweredQuestion(
             question_id=str(uuid.uuid4()), question=query
         )
         results = retrieving_pipeline.process(
-            [question], k, FileCategory(file_type)
+            [question], k, FileCategory(files_category)
         )
+        self._tui.print("Ouput:\n")
         self._tui.print(results.model_dump_json(indent=4))
 
     @validate_with(SearchDataset)
@@ -128,7 +136,7 @@ class RAGPipeline:
         index_directory: str = "data/processed",
         save_directory: str = "data/output/search_results",
         indexing_method: str = "bm25",
-        files_category: str = "documentation",
+        files_category: str = "all",
         k: int = 10,
     ) -> None:
         """Processes queries from a JSON dataset and saves search results.
@@ -143,24 +151,26 @@ class RAGPipeline:
                 'bm25', 'vector', or 'hybrid').
             k: Number of top results to retrieve per query.
         """
+        indexing_method = IndexingMethod(indexing_method)
+        files_category = FileCategory(files_category)
+
+        self._tui.print_title("search dataset", ("dataset", dataset_path))
         dataset = self._files_manager.load_dataset(
             dataset_path, "unanswered_questions"
         )
         retrievers = RetrievingProcessorFactory.create(
-            IndexingMethod(indexing_method),
+            indexing_method,
             index_directory,
             self._tui,
         )
-        retrieving_pipeline = RetrievingPipeline(retrievers)
+        retrieving_pipeline = RetrievingPipeline(retrievers, self._tui)
         results = retrieving_pipeline.process(
-            dataset.rag_questions, k, FileCategory(files_category)
+            dataset.rag_questions, k, files_category
         )
         save_file_name = Path(dataset_path).name
         save_file_path_obj = Path(save_directory) / save_file_name
         self._files_manager.save_results(results, str(save_file_path_obj))
-        self._tui.print(
-            f"Saved student_search_results to '{save_file_path_obj}'"
-        )
+        self._tui.print(f"Ouput:\t{save_file_path_obj}\n")
 
     @validate_with(Answer)
     def answer(
@@ -168,7 +178,7 @@ class RAGPipeline:
         query: str,
         index_directory: str = "data/processed",
         indexing_method: str = "bm25",
-        files_category: str = "documentation",
+        files_category: str = "all",
         k: int = 10,
     ) -> None:
         """Retrieves context and generates a natural answer for a single query.
@@ -180,12 +190,13 @@ class RAGPipeline:
                 'bm25', 'vector', or 'hybrid').
             k: Number of top results to retrieve as context.
         """
+        self._tui.print_title("answer")
         retrievers = RetrievingProcessorFactory.create(
             IndexingMethod(indexing_method),
             index_directory,
             self._tui,
         )
-        retrieving_pipeline = RetrievingPipeline(retrievers)
+        retrieving_pipeline = RetrievingPipeline(retrievers, self._tui)
         question = UnansweredQuestion(
             question_id=str(uuid.uuid4()), question=query
         )
@@ -193,7 +204,9 @@ class RAGPipeline:
             [question], k, FileCategory(files_category)
         )
         llm_manager = LLMManager(self._tui, LLMConfig())
-        chat_processor = LLMChatProcessor(self._files_manager, k, llm_manager)
+        chat_processor = LLMChatProcessor(
+            self._files_manager, k, llm_manager, self._tui
+        )
         outputs = chat_processor.answer_queries(list(results.search_results))
         answers = StudentSearchResultsAndAnswer(
             search_results=[
@@ -222,11 +235,16 @@ class RAGPipeline:
             save_directory: The directory where final answers should be saved.
             k: Number of context sources to include.
         """
+        self._tui.print_title(
+            "answer dataset", ("dataset", student_search_result_path)
+        )
         search_results = self._files_manager.load_search_results(
             student_search_result_path
         )
         llm_manager = LLMManager(self._tui, LLMConfig())
-        chat_processor = LLMChatProcessor(self._files_manager, k, llm_manager)
+        chat_processor = LLMChatProcessor(
+            self._files_manager, k, llm_manager, self._tui
+        )
         outputs = chat_processor.answer_queries(
             list(search_results.search_results)
         )
@@ -242,10 +260,7 @@ class RAGPipeline:
         save_file_name = Path(student_search_result_path).name
         save_file_path_obj = Path(save_directory) / save_file_name
         self._files_manager.save_results(answers, str(save_file_path_obj))
-        self._tui.print(
-            "Saved student_search_results_and_answers to "
-            f"'{save_file_path_obj}'"
-        )
+        self._tui.print(f"Ouput:\t{save_file_path_obj}\n")
 
     @validate_with(Evaluate)
     def evaluate(
@@ -265,8 +280,11 @@ class RAGPipeline:
             dataset_path: Path to the ground truth answered questions dataset
                 JSON file.
         """
+        self._tui.print_title(
+            "evaluate",
+            ("dataset", student_answer_path),
+            ("reference", dataset_path),
+        )
         evaluator = EvaluationProcessor(self._files_manager)
         metrics = evaluator.evaluate(student_answer_path, dataset_path)
-        self._tui.print_evaluation_results(
-            metrics, dataset_path, student_answer_path
-        )
+        self._tui.print_evaluation_results(metrics)

@@ -10,6 +10,7 @@ from rag.models.file_category import FileCategory
 from rag.models.indexing_method import IndexingMethod
 from rag.tui import TUI
 from rag.utils.files_manager import FilesManager
+from rag.utils.measure import measure
 
 logger = logging.getLogger(__name__)
 
@@ -39,13 +40,26 @@ class BM25IndexingProcessor(IndexingProcessor):
         texts = [chunk.text for chunk in processed_chunks]
         corpus = bm25s.tokenize(texts)
         retriever = bm25s.BM25(**self._config.bm25_settings.model_dump())
-        retriever.index(corpus, show_progress=True, leave_progress=True)
+        _, delta = measure(
+            retriever.index, corpus, show_progress=True, leave_progress=False
+        )
+        self._tui.print_task_report(
+            f"{self._config.TYPE} indexing", delta, "chunks", len(texts)
+        )
+
         save_path = FilesManager.get_indexing_directory(
             save_directory, IndexingMethod.BM25, file_type
         )
-        retriever.save(
+        _, delta = measure(
+            retriever.save,
             save_path,
             corpus=[c.model_dump() for c in processed_chunks],
             show_progress=False,
+        )
+        self._tui.print_task_report(
+            "data persistence",
+            delta,
+            "chunks",
+            len(texts),
         )
         return save_path

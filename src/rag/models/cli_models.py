@@ -32,7 +32,7 @@ class Search(BaseModel):
     query: str
     index_directory: DirectoryPath
     indexing_method: IndexingMethod
-    file_type: FileCategory
+    files_category: FileCategory
     k: Annotated[int, Field(gt=0)]
 
 

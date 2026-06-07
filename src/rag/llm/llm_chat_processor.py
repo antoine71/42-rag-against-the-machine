@@ -4,7 +4,9 @@ from rag.llm.prompt_generator import (
     ChatTemplatePromptGenerator,
 )
 from rag.models.search_result import MinimalSearchResults
+from rag.tui import TUI
 from rag.utils.files_manager import FilesManager
+from rag.utils.measure import measure
 
 
 class LLMChatProcessorError(RAGException):
@@ -15,7 +17,11 @@ class LLMChatProcessor:
     """Processor that coordinates prompt generation and LLM query answering."""
 
     def __init__(
-        self, files_manager: FilesManager, k: int, llm_manager: LLMManager
+        self,
+        files_manager: FilesManager,
+        k: int,
+        llm_manager: LLMManager,
+        tui: TUI,
     ) -> None:
         """Initializes the LLMChatProcessor.
 
@@ -30,6 +36,7 @@ class LLMChatProcessor:
         self._prompt_generator = ChatTemplatePromptGenerator(
             self._files_manager, k
         )
+        self._tui = tui
 
     def answer_queries(self, input: list[MinimalSearchResults]) -> list[str]:
         """Formats the search results into LLM prompts and generates query
@@ -43,5 +50,14 @@ class LLMChatProcessor:
             A list of natural language answer strings.
         """
         prompt_messages = self._prompt_generator.generate_prompt(input)
-        output = self._llm_manager.answer_queries(prompt_messages)
+        output, delta = measure(
+            self._llm_manager.answer_queries, prompt_messages
+        )
+        self._tui.print_task_report(
+            "Answer queries",
+            delta,
+            "questions",
+            len(prompt_messages),
+            new_line_after=True,
+        )
         return output

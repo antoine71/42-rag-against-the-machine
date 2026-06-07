@@ -2,6 +2,8 @@ from typing import ClassVar
 
 from pydantic_settings import BaseSettings
 
+from rag.config.indexing_config import IndexingConfig
+from rag.config.retrieving_config import RetrievingConfig
 from rag.config.text_processing import TextProcessingConfig
 from rag.models.chunk import Chunk
 from rag.models.file_category import FileCategory
@@ -20,10 +22,10 @@ class BM25Settings(BaseSettings):
     b: float = 0.75
 
 
-class BM25Configuration:
+class BM25Configuration(IndexingConfig, RetrievingConfig):
     """Encapsulates BM25 settings for indexing and retrieval."""
 
-    TYPE: ClassVar[str] = "BM25 method"
+    TYPE: ClassVar[str] = "BM25"
 
     bm25_settings: BM25Settings = BM25Settings()
     text_processing: TextProcessingConfig[FileType, Chunk] = (
@@ -49,6 +51,7 @@ class BM25Configuration:
             processors={
                 FileCategory.DOCUMENTATION: [LemmatizationProcessor],
                 FileCategory.CODE: [CodeCleaningProcessor],
+                FileCategory.ALL: [LemmatizationProcessor],
             }
         )
     )
