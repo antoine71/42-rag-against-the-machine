@@ -51,7 +51,10 @@ class BM25IndexingProcessor(IndexingProcessor):
         corpus = bm25s.tokenize(texts)
         retriever = bm25s.BM25(**self._config.bm25_settings.model_dump())
         _, delta = measure(
-            retriever.index, corpus, show_progress=True, leave_progress=False
+            retriever.index,
+            corpus,
+            show_progress=True,
+            leave_progress=False,
         )
         self._tui.print_task_report(
             f"{self._config.TYPE} indexing", delta, "chunks", len(texts)

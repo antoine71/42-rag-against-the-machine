@@ -1,8 +1,10 @@
+from pathlib import Path
 from typing import Any, Mapping, cast
 
 import bm25s
 
 from rag.config.bm25_config import BM25Configuration
+from rag.exceptions import RAGException
 from rag.models.file_category import FileCategory
 from rag.models.indexing_method import IndexingMethod
 from rag.retrieving.retrieving_processor import RetrievingProcessor
@@ -45,6 +47,8 @@ class BM25RetrievingProcessor(RetrievingProcessor):
         chunks_index = FilesManager.get_indexing_directory(
             self._index_directory, IndexingMethod.BM25, file_type
         )
+        if not Path(chunks_index).is_dir():
+            raise RAGException(f"Dataset not found: '{chunks_index}'")
         query_tokens = bm25s.tokenize(processed_queries)
         retriever: bm25s.BM25 = bm25s.BM25().load(
             chunks_index,

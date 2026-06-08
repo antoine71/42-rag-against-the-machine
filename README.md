@@ -326,8 +326,9 @@ make clean        # remove Python caches and tool caches
   small enough to fit retrieval and LLM context limits.
 - Dense retrieval improves semantic matching but increases indexing time,
   storage, and model-download requirements, so hybrid mode is kept optional.
-- The public datasets use strict character-span evaluation, which made source
-  metadata and overlap calculations a central part of the implementation.
+- Design a modulable application architecture with clear separation of concerns
+  to allow adding new text processing capabilities, indexing or retrieving 
+  stragegies without rewriting the application.
 
 ## AI Usage
 

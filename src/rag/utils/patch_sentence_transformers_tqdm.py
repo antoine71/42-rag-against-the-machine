@@ -5,6 +5,8 @@ from typing import Any
 
 import sentence_transformers.sentence_transformer.model as st_model
 
+from rag.tui import TUI
+
 
 def patch_tqdm(func: Callable[..., Any]) -> Callable[..., Any]:
     """Patches sentence-transformers progress bars for wrapped calls.
@@ -15,6 +17,7 @@ def patch_tqdm(func: Callable[..., Any]) -> Callable[..., Any]:
     Returns:
         A wrapper that disables persistent tqdm bars before calling `func`.
     """
+
     def wrapper(*args: Any, **kwargs: Any) -> Any:
         """Runs the wrapped callable after patching tqdm behavior.
 
@@ -25,7 +28,9 @@ def patch_tqdm(func: Callable[..., Any]) -> Callable[..., Any]:
         Returns:
             The wrapped callable result.
         """
-        st_model.trange = functools.partial(st_model.trange, leave=False)
+        st_model.trange = functools.partial(
+            st_model.trange, leave=False, ncols=TUI.WIDTH
+        )
         return func(*args, **kwargs)
 
     return wrapper

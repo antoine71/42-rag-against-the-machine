@@ -178,6 +178,7 @@ class FilesManager:
         Returns:
             Path to the backend/category-specific index directory.
         """
-        return str(
+        indexing_directory = (
             Path(save_directory) / indexing_method.value / file_category.value
         )
+        return str(indexing_directory)

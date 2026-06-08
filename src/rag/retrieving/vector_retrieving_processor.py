@@ -1,4 +1,5 @@
 import time
+from pathlib import Path
 from typing import Any, Mapping
 
 import chromadb
@@ -7,6 +8,7 @@ from sentence_transformers import SentenceTransformer
 from sentence_transformers.util import dot_score, semantic_search
 
 from rag.config.embedding import EmbeddingConfig
+from rag.exceptions import RAGException
 from rag.models.file_category import FileCategory
 from rag.models.indexing_method import IndexingMethod
 from rag.retrieving.retrieving_processor import RetrievingProcessor
@@ -46,11 +48,12 @@ class VectorRetrievingProcessor(RetrievingProcessor):
         Returns:
             Retrieved source metadata for each query.
         """
-        store = chromadb.PersistentClient(
-            FilesManager.get_indexing_directory(
-                self._index_directory, IndexingMethod.VECTOR, file_type
-            )
+        chunks_index = FilesManager.get_indexing_directory(
+            self._index_directory, IndexingMethod.VECTOR, file_type
         )
+        if not Path(chunks_index).is_dir():
+            raise RAGException(f"Dataset not found: '{chunks_index}'")
+        store = chromadb.PersistentClient(chunks_index)
         collection = store.get_collection(self._config.collection)
         corpus = collection.get(
             include=["embeddings", "metadatas", "documents"]
