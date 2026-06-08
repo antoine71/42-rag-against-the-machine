@@ -36,34 +36,56 @@ The JSON outputs follow the expected subject structures:
 
 ## Architecture
 
-```text
-RAGPipeline CLI
-├── index
-│   ├── FilesRepositoryScanner
-│   ├── ChunkingManager
-│   └── IndexingPipeline
-│       ├── BM25IndexingProcessor
-│       └── VectorEmbeddingProcessor
-├── search / search_dataset
-│   └── RetrievingPipeline
-│       ├── BM25RetrievingProcessor
-│       ├── VectorRetrievingProcessor
-│       └── Reciprocal Rank Fusion for hybrid retrieval
-├── answer / answer_dataset
-│   ├── ChatTemplatePromptGenerator
-│   └── LLMManager
-└── evaluate
-    └── EvaluationProcessor
+```mermaid
+flowchart TD
+    CLI["RAGPipeline CLI"]
+
+    CLI --> IndexCmd["index"]
+    IndexCmd --> ScanChunk["Scan + chunk files"]
+    ScanChunk --> ChunkTP["Chunk text processing"]
+    ChunkTP --> Indexing["BM25 / vector indexing"]
+    Indexing --> Stored["Persisted indexes"]
+
+    CLI --> SearchCmd["search / search_dataset"]
+    SearchCmd --> QueryTP["Query text processing"]
+    QueryTP --> Retrieval["Retrieval : BM25 / vector"]
+    Retrieval --> Hybrid["Hybrid RRF merge"]
+    Retrieval --> Results["Search results persistance"]
+    Hybrid --> Results
+
+    CLI --> AnswerCmd["answer / answer_dataset"]
+    AnswerCmd --> Answering["Prompt + LLM answer"]
+
+    CLI --> EvalCmd["evaluate"]
+    EvalCmd --> Evaluation["Recall@k evaluation"]
 ```
 
-The project is intentionally modular: scanning, chunking, indexing, retrieving,
-LLM generation, and evaluation are implemented as separate processors.
+The architecture is modular: `RAGPipeline` only orchestrates the CLI commands,
+while scanning, chunking, indexing, retrieving, LLM generation, and evaluation
+are implemented as separate processors. Factories select the concrete BM25,
+vector, or hybrid components from the `indexing_method` option.
+
+The indexing pipeline scans supported files, splits them into chunks, keeps
+source metadata and character spans, then builds one or more persisted indexes.
+In `hybrid` mode, both BM25 and vector indexes are created from independent
+copies of the same chunks.
+
+The retrieving pipeline applies query processing, loads the matching persisted
+index, and returns top-k source spans. Hybrid retrieval runs BM25 and vector
+retrieval independently with extra candidates, then merges their rankings with
+Reciprocal Rank Fusion.
+
+Text processing is configuration-driven and backend-specific:
+`CodeCleaningProcessor` expands code identifiers, `LemmatizationProcessor`
+improves lexical matching for documentation, and `FilePathExpansionProcessor`
+adds path breadcrumbs to chunks so file and directory names become searchable
+context.
 
 ## Repository Layout
 
 ```text
 src/rag/
-├── chunking/        File splitting and chunk enrichment
+├── chunking/        File splitting and source metadata
 ├── config/          BM25, embedding, chunking, LLM, and RRF settings
 ├── evaluation/      Recall metric implementation
 ├── indexing/        BM25 and vector index creation

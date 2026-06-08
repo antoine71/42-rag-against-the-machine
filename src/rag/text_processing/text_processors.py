@@ -55,6 +55,7 @@ class TextProcessor(ABC, Generic[TextType]):
         Returns:
             Wrapped processing function.
         """
+
         @functools.wraps(func)
         def wrapper(
             self: "TextProcessor[TextType]", item: TextType
@@ -266,70 +267,3 @@ class LemmatizationProcessor(TextProcessor[str]):
         """
         doc = self._nlp(item)
         return " ".join([token.lemma_ for token in doc])
-
-
-#
-#
-# class LowerCasingProcessor(TextProcessor):
-#     def _process_core(self, text: str) -> str:
-#         return text.lower()
-#
-#
-# class MarkdownCleaningProcessor(TextProcessor):
-#     def _process_core(self, text: str) -> str:
-#         text = BeautifulSoup(markdown(text), "html.parser").get_text(" ")
-#         return text
-#
-#
-# class CodeCleaningProcessor(TextProcessor):
-#     def _process_core(self, text: str) -> str:
-#         return text.lower().replace("_", " ").replace("-", " ")
-#
-#
-# class MarkdownBreadcrumbsExpansionProcessor(TextProcessor):
-#     def _process_core(self, chunk: Chunk) -> Chunk:
-#         if chunk.first_character_index == 0:
-#             return chunk
-#         headers_hierarchy = header_hierarchy_at(
-#             Path(chunk.file_path).read_text(), chunk.first_character_index
-#         )
-#         breadcrumbs = " > ".join(
-#             header["title"] for header in headers_hierarchy
-#         )
-#         chunk.text = breadcrumbs + "\n" + chunk.text
-#         return chunk
-#
-#
-# class SynonymExpansionProcessor(TextProcessor):
-#     def __init__(self, tui: TUI) -> None:
-#         super().__init__(tui)
-#         self._llm_manager = LLMManager(tui, LLMConfig())
-#
-#     def _get_prompt(self, query: str) -> list[dict[str, str]]:
-#         return [
-#             {
-#                 "system": dedent("""\
-#                 Generate 5 high-quality query expansions for RAG retrieval.
-#
-#                 Rules:
-#                 - preserve meaning
-#                 - include synonyms
-#                 - expand acronyms
-#                 - avoid overly broad terms
-#                 - prefer technical / retrieval useful variants
-#                 - return only short phrases
-#
-#                 Output format:
-#                 comma-separated list only""")
-#             },
-#             {"user": query},
-#         ]
-#
-#     def process_list(self, texts: list[str]) -> list[str]:
-#         queries = [self._get_prompt(query) for query in texts]
-#         responses = self._llm_manager.answer_queries(
-#             queries, self.__class__.__name__
-#         )
-#         return [
-#             text + " " + response for text, response in zip(texts, responses)
-#         ]
