@@ -243,7 +243,7 @@ uv run --env-file=.env.hf rag index \
   --repository data/raw/vllm-0.10.1 \
   --save_directory data/processed \
   --max_chunk_size 2000 \
-  --indexing_method hybrid \
+  --indexing_method bm25 \
   --files_category all
 ```
 
@@ -267,9 +267,19 @@ Example output:
 uv run --env-file=.env.hf rag search \
   --query "How does vLLM handle continuous batching?" \
   --index_directory data/processed \
-  --indexing_method hybrid \
+  --indexing_method bm25 \
   --files_category documentation \
   --k 10
+```
+
+Defaults:
+
+```text
+query=<required>
+index_directory=data/processed
+indexing_method=bm25
+files_category=all
+k=10
 ```
 
 ### 3. Search a dataset
@@ -282,6 +292,17 @@ uv run --env-file=.env.hf rag search_dataset \
   --indexing_method bm25 \
   --files_category documentation \
   --k 10
+```
+
+Defaults:
+
+```text
+dataset_path=datasets_public/public/UnansweredQuestions/dataset_docs_public.json
+index_directory=data/processed
+save_directory=data/output/search_results
+indexing_method=bm25
+files_category=all
+k=10
 ```
 
 The output file keeps the input dataset filename and is written under
@@ -297,9 +318,19 @@ Example output:
 uv run --env-file=.env.hf rag answer \
   --query "What is PagedAttention?" \
   --index_directory data/processed \
-  --indexing_method hybrid \
+  --indexing_method bm25 \
   --files_category all \
   --k 10
+```
+
+Defaults:
+
+```text
+query=<required>
+index_directory=data/processed
+indexing_method=bm25
+files_category=all
+k=10
 ```
 
 ### 5. Generate answers from search results
@@ -311,12 +342,27 @@ uv run --env-file=.env.hf rag answer_dataset \
   --k 10
 ```
 
+Defaults:
+
+```text
+student_search_result_path=data/output/search_results/dataset_docs_public.json
+save_directory=data/output/search_result_and_answer
+k=10
+```
+
 ### 6. Evaluate retrieval
 
 ```bash
 uv run --env-file=.env.hf rag evaluate \
   --student_answer_path data/output/search_results/dataset_docs_public.json \
   --dataset_path datasets_public/public/AnsweredQuestions/dataset_docs_public.json
+```
+
+Defaults:
+
+```text
+student_answer_path=data/output/search_results/dataset_docs_public.json
+dataset_path=datasets_public/public/AnsweredQuestions/dataset_docs_public.json
 ```
 
 ### Development Commands
